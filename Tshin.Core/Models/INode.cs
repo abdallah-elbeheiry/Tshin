@@ -1,0 +1,13 @@
+﻿namespace Tshin.Core.Models;
+
+public interface INode
+{
+    string Id { get; set; }
+    NodeType NodeType { get; }
+    string DisplayText { get; set; }
+}
+
+public interface IBranchingNode : INode{
+    List<IChoice> Choices { get; set; }
+}
+
