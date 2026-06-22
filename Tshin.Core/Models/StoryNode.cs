@@ -1,10 +1,10 @@
 ﻿namespace Tshin.Core.Models;
 
-public class StoryNode(string id, NodeType nodeType, string displayText, List<IChoice> choices)
+public sealed record StoryNode(string Id, NodeType NodeType, string DisplayText, List<IChoice> Choices)
     : IBranchingNode
 {
-    public string Id { get; set; } = id;
-    public NodeType NodeType { get; } = nodeType;
-    public string DisplayText { get; set; } = displayText;
-    public List<IChoice> Choices { get; set; } = choices;
+    public string Id { get; set; } = Id;
+    public NodeType NodeType { get; } = NodeType;
+    public string DisplayText { get; set; } = DisplayText;
+    public List<IChoice> Choices { get; set; } = Choices;
 }

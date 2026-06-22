@@ -4,22 +4,34 @@ namespace Tshin.Core.Utils;
 
 public static class NodeManager
 {
-    internal static readonly List<INode> Nodes = [];
+    internal static readonly Dictionary<string, INode> Nodes = [];
 
-    internal static void AppendNode(INode node) => Nodes.Add(node);
+    internal static void AppendNode(INode node)
+    {
+        Nodes.Add(node.Id, node);
+    }
 
-    public static INode GetNode(string id) => Nodes.First(x => x.Id == id);
-    
-    public static void RemoveNode(INode node) => Nodes.Remove(node);
-    
+    public static INode GetNode(string id) => Nodes[id];
+
+    public static void RemoveNode(INode node) => Nodes.Remove(node.Id);
+
     public static void ClearNodes() => Nodes.Clear();
+
+    public static List<string> GetNodeIds() => [.. Nodes.Keys];
     
-    public static List<string> GetNodeIds() => Nodes.Select(x => x.Id).ToList();
-    public static List<INode> GetNodes() => Nodes;
+    // Grab the values directly
+    public static List<INode> GetNodes() => [.. Nodes.Values];
+    
     public static int GetNodeCount() => Nodes.Count;
-    
-    public static void ModifyNodeText(string id, string text) => Nodes.First(x => x.Id == id).DisplayText = text;
-    public static void ModifyNodeId(string id, string newId) => Nodes.First(x => x.Id == id).Id = newId;
+
+    public static void ModifyNodeText(string id, string text) => Nodes[id].DisplayText = text;
+
+    public static void ModifyNodeId(string id, string newId)
+    {
+        if (!Nodes.Remove(id, out var node)) return;
+        node.Id = newId;
+        Nodes.Add(newId, node);
+    }
 
     public static void AddChoice(IChoice choice, IBranchingNode node) => node.Choices.Add(choice);
     public static void RemoveChoice(IChoice choice, IBranchingNode node) => node.Choices.Remove(choice);
@@ -29,6 +41,4 @@ public static class NodeManager
     public static IChoice GetChoice(IBranchingNode node, int index) => node.Choices[index];
     public static void ModifyChoiceText(IChoice choice, string text) => choice.DisplayText = text;
     public static void ModifyChoicePath(IChoice choice, INode target) => choice.Node = target;
-
-
 }
