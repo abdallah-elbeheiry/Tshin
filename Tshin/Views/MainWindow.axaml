@@ -1,13 +1,14 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:Tshin.ViewModels"
+        xmlns:vm="clr-namespace:Tshin.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Tshin.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Tshin">
+        Title="Tshin"
+        x:CompileBindings="False">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -15,6 +16,71 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <DockPanel Margin="20">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,20">
+            <Button Content="Add Node" Command="{Binding AddNodeCommand}"/>
+            <Button Content="Save to .tshin" Click="SaveButton_Click"/>
+        </StackPanel>
+
+        <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding Nodes}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:NodeViewModel">
+                        <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+                            <StackPanel Spacing="5">
+                                <DockPanel>
+                                    <TextBlock Text="Node ID: " VerticalAlignment="Center"/>
+                                    <Button DockPanel.Dock="Right" Content="Remove Node" 
+                                            Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).RemoveNodeCommand}"
+                                            CommandParameter="{Binding}"/>
+                                    <TextBox Text="{Binding Id}"/>
+                                </DockPanel>
+                                
+                                <TextBlock Text="Display Text:"/>
+                                <TextBox Text="{Binding DisplayText}" AcceptsReturn="True" TextWrapping="Wrap"/>
+                                
+                                <TextBlock Text="Choices:" FontWeight="Bold" Margin="0,10,0,0"/>
+                                <ItemsControl ItemsSource="{Binding Choices}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ChoiceViewModel">
+                                            <Border BorderBrush="LightGray" BorderThickness="1" Padding="5" Margin="0,0,0,5">
+                                                <Grid ColumnDefinitions="*, *, Auto">
+                                                    <TextBox Grid.Column="0" Text="{Binding DisplayText}" Watermark="Choice text" Margin="0,0,5,0"/>
+                                                    <ComboBox Grid.Column="1" 
+                                                              ItemsSource="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Nodes}"
+                                                              SelectedItem="{Binding TargetNode}"
+                                                              HorizontalAlignment="Stretch">
+                                                        <ComboBox.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:NodeViewModel">
+                                                                <TextBlock Text="{Binding Id}"/>
+                                                            </DataTemplate>
+                                                        </ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                    <Button Grid.Column="2" Content="X" 
+                                                            Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).RemoveChoiceCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            Margin="5,0,0,0"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <ComboBox PlaceholderText="Add Choice to..."
+                                          ItemsSource="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Nodes}"
+                                          SelectedItem="{Binding TargetNodeProxy}"
+                                          HorizontalAlignment="Stretch">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:NodeViewModel">
+                                            <TextBlock Text="{Binding Id}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
 
 </Window>
