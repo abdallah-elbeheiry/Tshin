@@ -19,7 +19,6 @@ public static class NodeManager
 
     public static List<string> GetNodeIds() => [.. Nodes.Keys];
     
-    // Grab the values directly
     public static List<INode> GetNodes() => [.. Nodes.Values];
     
     public static int GetNodeCount() => Nodes.Count;
