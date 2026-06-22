@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Tshin.ViewModels;
@@ -10,33 +10,56 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        DataContextChanged += (sender, args) =>
+        {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.FilePickerRequest = ShowOpenFilePickerAsync;
+                vm.FileSaveRequest = ShowSaveFilePickerAsync;
+            }
+        };
     }
 
-    public async void SaveButton_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async Task<string> ShowOpenFilePickerAsync()
     {
-        if (DataContext is MainWindowViewModel vm)
+        var topLevel = GetTopLevel(this);
+        if (topLevel == null) return string.Empty;
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            var topLevel = GetTopLevel(this);
-            if (topLevel == null) return;
-
-            var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            Title = "Open Tshin File",
+            FileTypeFilter = new[]
             {
-                Title = "Save Tshin File",
-                FileTypeChoices = new[]
+                new FilePickerFileType("Tshin Files")
                 {
-                    new FilePickerFileType("Tshin Files")
-                    {
-                        Patterns = new[] { "*.tshin" }
-                    }
-                },
-                DefaultExtension = "tshin",
-                SuggestedFileName = "story.tshin"
-            });
+                    Patterns = new[] { "*.tshin" }
+                }
+            },
+            AllowMultiple = false
+        });
 
-            if (file is not null)
+        return files.Count >= 1 ? files[0].Path.LocalPath : string.Empty;
+    }
+
+    private async Task<string> ShowSaveFilePickerAsync()
+    {
+        var topLevel = GetTopLevel(this);
+        if (topLevel == null) return string.Empty;
+
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save Tshin File",
+            FileTypeChoices = new[]
             {
-                await vm.SaveToFileAsync(file.Path.LocalPath);
-            }
-        }
+                new FilePickerFileType("Tshin Files")
+                {
+                    Patterns = new[] { "*.tshin" }
+                }
+            },
+            DefaultExtension = "tshin",
+            SuggestedFileName = "story.tshin"
+        });
+
+        return file?.Path.LocalPath ?? string.Empty;
     }
 }

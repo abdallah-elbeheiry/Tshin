@@ -8,54 +8,63 @@ namespace Tshin.ViewModels;
 
 public partial class NodeViewModel : ViewModelBase
 {
-    private readonly INode _node;
-
-    public NodeViewModel(INode node)
+    public NodeViewModel(INode node, System.Action? onChanged = null)
     {
-        _node = node;
-        _id = node.Id;
-        _displayText = node.DisplayText;
-        Choices = new ObservableCollection<ChoiceViewModel>();
+        Model = node;
+        _onChanged = onChanged;
+        Choices = [];
     }
+
+    private readonly System.Action? _onChanged;
+
+    public string Id
+    {
+        get => Model.Id;
+        set
+        {
+            if (Model.Id == value) return;
+            var oldId = Model.Id;
+            NodeManager.ModifyNodeId(oldId, value);
+            OnPropertyChanged(nameof(Id));
+            _onChanged?.Invoke();
+        }
+    }
+
+    public string DisplayText
+    {
+        get => Model.DisplayText;
+        set
+        {
+            if (Model.DisplayText == value) return;
+            Model.DisplayText = value;
+            OnPropertyChanged(nameof(DisplayText));
+            _onChanged?.Invoke();
+        }
+    }
+
+    public ObservableCollection<ChoiceViewModel> Choices { get; }
 
     public void InitializeChoices(ObservableCollection<NodeViewModel> allNodes)
     {
         Choices.Clear();
-        if (_node is IBranchingNode branchingNode)
+        if (Model is IBranchingNode branchingNode)
         {
             foreach (var choice in branchingNode.Choices)
             {
                 var targetVm = allNodes.FirstOrDefault(n => n.Model == choice.Node);
-                Choices.Add(new ChoiceViewModel(choice, targetVm));
+                Choices.Add(new ChoiceViewModel(choice, targetVm, _onChanged));
             }
         }
     }
 
-    [ObservableProperty]
-    private string _id;
-
-    [ObservableProperty]
-    private string _displayText;
-
-    public ObservableCollection<ChoiceViewModel> Choices { get; }
-
-    partial void OnIdChanged(string value)
-    {
-        NodeManager.ModifyNodeId(_node.Id, value);
-    }
-
-    partial void OnDisplayTextChanged(string value)
-    {
-        _node.DisplayText = value;
-    }
-
     public void AddChoice(NodeViewModel targetNodeVm)
     {
-        if (_node is IBranchingNode branchingNode)
+        if (Model is IBranchingNode branchingNode)
         {
-            var choice = new Tshin.Core.Models.StoryChoice(targetNodeVm.Model, "New Choice");
+            var choice = new StoryChoice(targetNodeVm.Model, "New Choice");
             NodeManager.AddChoice(choice, branchingNode);
-            Choices.Add(new ChoiceViewModel(choice, targetNodeVm));
+            Choices.Add(new ChoiceViewModel(choice, targetNodeVm, _onChanged));
+            _onChanged?.Invoke();
         }
     }
 
@@ -67,12 +76,11 @@ public partial class NodeViewModel : ViewModelBase
 
     public void RemoveChoice(ChoiceViewModel choiceVm)
     {
-        if (_node is IBranchingNode branchingNode)
-        {
-            NodeManager.RemoveChoice(choiceVm.Model, branchingNode);
-            Choices.Remove(choiceVm);
-        }
+        if (Model is not IBranchingNode branchingNode) return;
+        NodeManager.RemoveChoice(choiceVm.Model, branchingNode);
+        Choices.Remove(choiceVm);
+        _onChanged?.Invoke();
     }
 
-    public INode Model => _node;
+    public INode Model { get; }
 }

@@ -16,7 +16,6 @@ public static class FileReader
         if (!File.Exists(filePath)) return;
 
         var temporaryChoicesMap = new List<PendingChoiceLink>();
-
         var lines = await File.ReadAllLinesAsync(filePath, Encoding.UTF8);
         IBranchingNode? currentNode = null;
 
@@ -24,13 +23,11 @@ public static class FileReader
         {
             var line = rawLine.Trim();
             
-            // Skip comments or completely empty buffer lines
-            if (string.IsNullOrEmpty(line) || line.StartsWith($"#")) continue;
+            if (string.IsNullOrEmpty(line) || line.StartsWith('#')) continue;
 
-            //Catch Block Headers: e.g., [StoryNode: "uuid"]
             if (line.StartsWith('[') && line.EndsWith(']'))
             {
-                var headerContent = line.Trim('[', ']'); // Removes brackets
+                var headerContent = line.Trim('[', ']'); // Removes bracket wrappers
                 var splitIndex = headerContent.IndexOf(':');
                 if (splitIndex == -1) continue;
 
@@ -38,10 +35,13 @@ public static class FileReader
                 var rawId = headerContent[(splitIndex + 1)..].Trim();
                 var id = ExtractBetweenQuotes(rawId);
 
+                if (string.IsNullOrEmpty(id)) continue;
+
                 if (nodeTypeName == "StoryNode")
                 {
+                    if (NodeManager.GetNodeIds().Contains(id)) continue;
+
                     var storyNode = NodeFactory.CreateNode(NodeType.StoryNode, id);
-                    NodeManager.AppendNode(storyNode);
                     currentNode = (IBranchingNode?)storyNode;
                 }
                 // Extend easily here later: else if (nodeTypeName == "EventNode") { ... }
@@ -53,7 +53,6 @@ public static class FileReader
             if (line.StartsWith("text:"))
             {
                 var textPart = line["text:".Length..].Trim();
-                // Restore literal '\n' patterns back into standard UI system line breaks
                 currentNode.DisplayText = ExtractBetweenQuotes(textPart).Replace("\\n", Environment.NewLine);
             }
 
@@ -63,22 +62,28 @@ public static class FileReader
                 if (arrowIndex == -1) continue;
 
                 var leftPart = line[..arrowIndex];
-                var rightPart = line[arrowIndex..];
+                var rightPart = line[(arrowIndex + 2)..];
 
-                var choiceText = ExtractBetweenQuotes(leftPart);
+                var choiceText = ExtractBetweenQuotes(leftPart).Replace("\\n", Environment.NewLine);
                 var targetNodeId = ExtractBetweenQuotes(rightPart);
 
+                if (string.IsNullOrEmpty(targetNodeId)) continue;
                 var newChoice = new Choice(currentNode, choiceText);
                 NodeManager.AddChoice(newChoice, currentNode);
-
                 temporaryChoicesMap.Add(new PendingChoiceLink(newChoice, targetNodeId));
             }
         }
 
         foreach (var pendingLink in temporaryChoicesMap)
         {
-            var targetNodeInstance = NodeManager.GetNode(pendingLink.TargetId);
-            NodeManager.ModifyChoicePath(pendingLink.ChoiceItem, targetNodeInstance);
+            if (NodeManager.TryGetNode(pendingLink.TargetId, out var targetNodeInstance))
+            {
+                NodeManager.ModifyChoicePath(pendingLink.ChoiceItem, targetNodeInstance);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"Warning: Target node '{pendingLink.TargetId}' not found for a choice.");
+            }
         }
     }
 
@@ -91,9 +96,8 @@ public static class FileReader
         {
             return input.Substring(firstQuote + 1, lastQuote - firstQuote - 1);
         }
-        return input;
+        return string.Empty; 
     }
 
-    // Small interior record structure strictly used for Pass 2 processing bookkeeping
     private sealed record PendingChoiceLink(IChoice ChoiceItem, string TargetId);
 }

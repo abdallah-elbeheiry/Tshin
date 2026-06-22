@@ -2,6 +2,6 @@
 
 public interface IChoice
 {
-    INode Node { get; set; }
+    INode? Node { get; set; }
     string DisplayText { get; set; }
 }

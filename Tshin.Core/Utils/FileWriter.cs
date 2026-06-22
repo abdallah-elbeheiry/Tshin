@@ -25,7 +25,15 @@ public static class FileWriter
                 var choices = NodeManager.GetChoices(branchingNode);
                 foreach (var choice in choices)
                 {
-                    await writer.WriteLineAsync($"choice: \"{choice.DisplayText}\"->\"{choice.Node.Id}\"");
+                    if (choice.Node != null)
+                    {
+                        await writer.WriteLineAsync($"choice: \"{choice.DisplayText}\"->\"{choice.Node.Id}\"");
+                    }
+                    else
+                    {
+                        // Optional: Write something even for null nodes if we want to preserve the choice
+                        // For now let's just skip it as it's an invalid state for the story
+                    }
                 }
             }
 

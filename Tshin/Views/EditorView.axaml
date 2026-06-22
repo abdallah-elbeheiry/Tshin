@@ -1,0 +1,121 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Tshin.ViewModels"
+             x:Class="Tshin.Views.EditorView"
+             x:DataType="vm:EditorViewModel"
+             x:CompileBindings="False">
+    <Panel Background="{StaticResource DarkBackground}">
+        <DockPanel Margin="20">
+            <!-- Toolbar -->
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,20">
+                <Button Content="Back" Command="{Binding BackCommand}" Classes="accent"/>
+                <Separator Height="20" VerticalAlignment="Center"/>
+                <Button Content="Add Node" Command="{Binding AddNodeCommand}" Classes="primary"/>
+                <Button Content="Save to .tshin" Command="{Binding SaveCommand}" Classes="secondary"/>
+                <TextBlock Text="Unsaved changes" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" Foreground="{StaticResource AccentPink}" Margin="10,0,0,0" FontWeight="Bold"/>
+            </StackPanel>
+
+            <Grid ColumnDefinitions="*, 300">
+                <!-- Editor Area -->
+                <ScrollViewer Grid.Column="0" Padding="0,0,20,0">
+                    <ItemsControl ItemsSource="{Binding Nodes}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:NodeViewModel">
+                                <Border Background="{StaticResource CardBackground}" BorderBrush="{StaticResource DeepPurple}" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,0,0,15">
+                                    <StackPanel Spacing="10">
+                                        <DockPanel>
+                                            <TextBlock Text="Node ID: " VerticalAlignment="Center" Foreground="LightGray"/>
+                                            <Button DockPanel.Dock="Right" Content="Remove Node" 
+                                                    Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveNodeCommand}"
+                                                    CommandParameter="{Binding}"
+                                                    Classes="accent" Padding="5,2"/>
+                                            <TextBox Text="{Binding Id}" Margin="10,0,0,0"/>
+                                        </DockPanel>
+                                        
+                                        <TextBlock Text="Display Text:" Foreground="LightGray"/>
+                                        <TextBox Text="{Binding DisplayText}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60"/>
+                                        
+                                        <TextBlock Text="Choices:" FontWeight="Bold" Margin="0,10,0,0" Foreground="LightGray"/>
+                                        <ItemsControl ItemsSource="{Binding Choices}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:ChoiceViewModel">
+                                                    <Border BorderBrush="#444" BorderThickness="1" Padding="8" Margin="0,0,0,8" CornerRadius="4" Background="#252525">
+                                                        <Grid ColumnDefinitions="*, *, Auto">
+                                                            <TextBox Grid.Column="0" Text="{Binding DisplayText}" Watermark="Choice text" Margin="0,0,10,0"/>
+                                                            <ComboBox Grid.Column="1" 
+                                                                      ItemsSource="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).Nodes}"
+                                                                      SelectedItem="{Binding TargetNode}"
+                                                                      HorizontalAlignment="Stretch">
+                                                                <ComboBox.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:NodeViewModel">
+                                                                        <TextBlock Text="{Binding Id}"/>
+                                                                    </DataTemplate>
+                                                                </ComboBox.ItemTemplate>
+                                                            </ComboBox>
+                                                            <Button Grid.Column="2" Content="X" 
+                                                                    Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveChoiceCommand}"
+                                                                    CommandParameter="{Binding}"
+                                                                    Classes="accent" Margin="10,0,0,0"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        
+                                        <Button Content="+ Add Choice" Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).AddChoiceCommand}" 
+                                                CommandParameter="{Binding}" HorizontalAlignment="Stretch" Classes="secondary"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Graph Visualization -->
+                <Border Grid.Column="1" Background="#1A1A1A" CornerRadius="8" Padding="15">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="Directed Graph" FontWeight="Bold" FontSize="18" Margin="0,0,0,15" Foreground="White" HorizontalAlignment="Center"/>
+                        <ScrollViewer>
+                            <ItemsControl ItemsSource="{Binding Nodes}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:NodeViewModel">
+                                        <StackPanel Margin="0,0,0,20">
+                                            <Border Background="{StaticResource DeepPurple}" CornerRadius="4" Padding="5,2" HorizontalAlignment="Left">
+                                                <TextBlock Text="{Binding Id}" FontWeight="Bold" Foreground="White"/>
+                                            </Border>
+                                            <ItemsControl ItemsSource="{Binding Choices}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:ChoiceViewModel">
+                                                        <StackPanel Orientation="Horizontal" Margin="15,2,0,0">
+                                                            <TextBlock Text="└─▶ " Foreground="Gray"/>
+                                                            <TextBlock Text="{Binding TargetNode.Id}" Foreground="{StaticResource AccentPink}"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </DockPanel>
+        
+        <!-- Unsaved Changes Dialog Overlay -->
+        <Panel Background="#AA000000" IsVisible="{Binding ShowUnsavedChangesDialog}">
+            <Border Background="{StaticResource CardBackground}" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="30" CornerRadius="12" Width="400">
+                <StackPanel Spacing="20">
+                    <TextBlock Text="Unsaved Changes" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"/>
+                    <TextBlock Text="You have unsaved changes. Do you want to save before leaving?" TextWrapping="Wrap" TextAlignment="Center" Foreground="LightGray"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                        <Button Content="Save &amp; Exit" Command="{Binding SaveCommand}" Classes="primary" Padding="10,5"/>
+                        <Button Content="Exit Without Saving" Command="{Binding ExitWithoutSavingCommand}" Classes="accent" Padding="10,5"/>
+                        <Button Content="Cancel" Command="{Binding CancelBackCommand}" Padding="10,5"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Panel>
+    </Panel>
+</UserControl>

@@ -2,14 +2,35 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Tshin.App"
              xmlns:local="using:Tshin"
-             RequestedThemeVariant="Default">
+             RequestedThemeVariant="Dark">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
   
+    <Application.Resources>
+        <SolidColorBrush x:Key="PrimaryPurple" Color="#6A1B9A" />
+        <SolidColorBrush x:Key="SecondaryBlue" Color="#1565C0" />
+        <SolidColorBrush x:Key="AccentPink" Color="#AD1457" />
+        <SolidColorBrush x:Key="DeepPurple" Color="#4527A0" />
+        <SolidColorBrush x:Key="DarkBackground" Color="#121212" />
+        <SolidColorBrush x:Key="CardBackground" Color="#1E1E1E" />
+    </Application.Resources>
+
     <Application.Styles>
         <FluentTheme />
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="{StaticResource PrimaryPurple}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.secondary">
+            <Setter Property="Background" Value="{StaticResource SecondaryBlue}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.accent">
+            <Setter Property="Background" Value="{StaticResource AccentPink}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
     </Application.Styles>
 </Application>

@@ -6,25 +6,40 @@ namespace Tshin.ViewModels;
 public partial class ChoiceViewModel : ViewModelBase
 {
     private readonly IChoice _choice;
-
-    public ChoiceViewModel(IChoice choice, NodeViewModel? targetNode = null)
-    {
-        _choice = choice;
-        _displayText = choice.DisplayText;
-        _targetNode = targetNode;
-    }
-
-    [ObservableProperty]
-    private string _displayText;
-
-    [ObservableProperty]
+    private readonly System.Action? _onChanged;
     private NodeViewModel? _targetNode;
 
-    partial void OnDisplayTextChanged(string value) => _choice.DisplayText = value;
-    partial void OnTargetNodeChanged(NodeViewModel? value)
+    public ChoiceViewModel(IChoice choice, NodeViewModel? targetNode = null, System.Action? onChanged = null)
     {
-        if (value != null) _choice.Node = value.Model;
+        _choice = choice;
+        _targetNode = targetNode;
+        _onChanged = onChanged;
     }
-    
+
+    public string DisplayText
+    {
+        get => _choice.DisplayText;
+        set
+        {
+            if (_choice.DisplayText == value) return;
+            _choice.DisplayText = value;
+            OnPropertyChanged(nameof(DisplayText));
+            _onChanged?.Invoke();
+        }
+    }
+
+    public NodeViewModel? TargetNode
+    {
+        get => _targetNode;
+        set
+        {
+            if (_targetNode == value) return;
+            _targetNode = value;
+            _choice.Node = value?.Model;
+            OnPropertyChanged(nameof(TargetNode));
+            _onChanged?.Invoke();
+        }
+    }
+
     public IChoice Model => _choice;
 }

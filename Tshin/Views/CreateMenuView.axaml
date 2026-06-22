@@ -1,0 +1,15 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Tshin.ViewModels"
+             x:Class="Tshin.Views.CreateMenuView"
+             x:DataType="vm:CreateMenuViewModel">
+    <Panel Background="{StaticResource DarkBackground}">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+            <TextBlock Text="CREATE" FontSize="48" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White" Margin="0,0,0,40"/>
+            
+            <Button Content="CREATE NEW EPIC" Command="{Binding NewEpicCommand}" Width="300" HorizontalContentAlignment="Center" Classes="primary" FontSize="18" Padding="12"/>
+            <Button Content="EDIT EXISTING EPIC" Command="{Binding EditExistingCommand}" Width="300" HorizontalContentAlignment="Center" Classes="secondary" FontSize="18" Padding="12"/>
+            <Button Content="BACK" Command="{Binding BackCommand}" Width="300" HorizontalContentAlignment="Center" Classes="accent" FontSize="18" Padding="12"/>
+        </StackPanel>
+    </Panel>
+</UserControl>
