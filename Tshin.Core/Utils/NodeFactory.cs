@@ -4,12 +4,12 @@ namespace Tshin.Core.Utils;
 
 public class NodeFactory
 {
-    public static INode CreateNode(NodeType type, string? id = null)
+    public static INode CreateNode(NodeType type, string? id = null, double x = 0, double y = 0)
     {
         switch (type)
         {
             case NodeType.StoryNode:
-                var node = new StoryNode(id ?? Guid.NewGuid().ToString(), NodeType.StoryNode, "", []);
+                var node = new StoryNode(id ?? Guid.NewGuid().ToString(), NodeType.StoryNode, "", [], x, y);
                 NodeManager.AppendNode(node);
                 return node;
             default:

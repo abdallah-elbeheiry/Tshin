@@ -72,6 +72,21 @@ public static class FileReader
                 NodeManager.AddChoice(newChoice, currentNode);
                 temporaryChoicesMap.Add(new PendingChoiceLink(newChoice, targetNodeId));
             }
+            
+            else if (line.StartsWith("position:"))
+            {
+                var coordinatesPart = line["position:".Length..].Trim();
+    
+                var coordinates = coordinatesPart.Split(',');
+
+                if (coordinates.Length != 2) continue;
+                if (double.TryParse(coordinates[0].Trim(), System.Globalization.CultureInfo.InvariantCulture, out var x) &&
+                    double.TryParse(coordinates[1].Trim(), System.Globalization.CultureInfo.InvariantCulture, out var y))
+                {
+                    currentNode.X = x;
+                    currentNode.Y = y;
+                }
+            }
         }
 
         foreach (var pendingLink in temporaryChoicesMap)
