@@ -19,6 +19,9 @@ public static class FileWriter
 
             var escapedText = node.DisplayText.Replace("\r", "").Replace("\n", "\\n");
             await writer.WriteLineAsync($"text: \"{escapedText}\"");
+            // Inside FileWriter.cs loop:
+            await writer.WriteLineAsync(
+                $"position: {node.X.ToString(System.Globalization.CultureInfo.InvariantCulture)},{node.Y.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
 
             if (node is IBranchingNode branchingNode)
             {
