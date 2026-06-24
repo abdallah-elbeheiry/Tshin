@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Tshin.Core.Models;
+using Tshin.Core.Utils;
 using Tshin.Models;
 
 namespace Tshin.Services;
@@ -10,7 +12,8 @@ namespace Tshin.Services;
 /// <summary>
 /// In-memory stand-in for the real persistence layer. Starts empty; projects appear
 /// as the user creates or imports them. Nothing touches disk except
-/// <see cref="ImportProjectAsync"/>, which only reads the dropped file's name.
+/// <see cref="ImportProjectAsync"/> and <see cref="ExportProjectAsync"/>, which use
+/// <see cref="FileReader"/> and <see cref="FileWriter"/>.
 /// </summary>
 public sealed class MockProjectService : IProjectService
 {
@@ -47,26 +50,76 @@ public sealed class MockProjectService : IProjectService
         return Task.FromResult(summary);
     }
 
-    public Task<ProjectSummary> ImportProjectAsync(string filePath)
+    public async Task<ProjectSummary> ImportProjectAsync(string filePath)
     {
+        await FileReader.LoadFileAsync(filePath);
+
         var id = Guid.NewGuid().ToString("N");
         var name = Path.GetFileNameWithoutExtension(filePath);
+        
+        var nodes = NodeManager.GetNodes().Select(n => new NodeSnapshot
+        {
+            Id = n.Id,
+            DisplayText = n.DisplayText,
+            X = n.X,
+            Y = n.Y,
+            Choices = (n as IBranchingNode)?.Choices.Select(c => new ChoiceSnapshot
+            {
+                DisplayText = c.DisplayText,
+                TargetNodeId = c.Node?.Id
+            }).ToList() ?? new List<ChoiceSnapshot>()
+        }).ToList();
+
         var summary = new ProjectSummary
         {
             Id = id,
             Name = string.IsNullOrWhiteSpace(name) ? "Imported Epic" : name,
             Description = $"Imported from {Path.GetFileName(filePath)}",
-            NodeCount = 1,
+            NodeCount = nodes.Count,
             LastModified = DateTimeOffset.Now,
             IsImported = true,
         };
+
         _projects[id] = summary;
         _stories[id] = new StorySnapshot
         {
             ProjectId = id,
-            Nodes = { new NodeSnapshot { Id = "start", DisplayText = $"(Imported placeholder for '{name}')", X = 120, Y = 120 } },
+            Nodes = nodes
         };
-        return Task.FromResult(summary);
+
+        return summary;
+    }
+
+    public async Task ExportProjectAsync(StorySnapshot snapshot, string filePath)
+    {
+        NodeManager.ClearNodes();
+        
+        // Populate NodeManager from snapshot
+        foreach (var ns in snapshot.Nodes)
+        {
+            var node = NodeFactory.CreateNode(NodeType.StoryNode, ns.Id, ns.X, ns.Y);
+            node.DisplayText = ns.DisplayText;
+        }
+
+        // Link choices
+        foreach (var ns in snapshot.Nodes)
+        {
+            if (NodeManager.TryGetNode(ns.Id, out var node) && node is IBranchingNode branchingNode)
+            {
+                foreach (var cs in ns.Choices)
+                {
+                    INode? target = null;
+                    if (cs.TargetNodeId != null)
+                    {
+                        NodeManager.TryGetNode(cs.TargetNodeId, out target);
+                    }
+                    var choice = new Choice(target, cs.DisplayText);
+                    branchingNode.Choices.Add(choice);
+                }
+            }
+        }
+
+        await FileWriter.SaveFileAsync(filePath);
     }
 
     public Task SaveProjectAsync(StorySnapshot snapshot)

@@ -225,6 +225,13 @@ public partial class EditorViewModel : ViewModelBase
         IsDirty = false;
     }
 
+    [RelayCommand]
+    private async Task Export(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath)) return;
+        await _projectService.ExportProjectAsync(BuildSnapshot(), filePath);
+    }
+
     private StorySnapshot BuildSnapshot()
     {
         var snapshot = new StorySnapshot { ProjectId = _projectId };

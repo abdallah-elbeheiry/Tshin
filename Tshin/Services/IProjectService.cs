@@ -22,6 +22,11 @@ public interface IProjectService
     /// (file picker or drag-and-drop). Returns the new project's summary.
     /// </summary>
     Task<ProjectSummary> ImportProjectAsync(string filePath);
+    
+    /// <summary>
+    /// Writes the story to disk in the engine's native format (.tshin).
+    /// </summary>
+    Task ExportProjectAsync(StorySnapshot snapshot, string filePath);
 
     Task SaveProjectAsync(StorySnapshot snapshot);
 }
