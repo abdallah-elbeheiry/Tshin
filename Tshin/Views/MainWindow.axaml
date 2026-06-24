@@ -1,21 +1,93 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Tshin.ViewModels"
+        xmlns:models="clr-namespace:Tshin.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="720"
         x:Class="Tshin.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="Tshin"
-        x:CompileBindings="False">
+        MinWidth="820" MinHeight="560"
+        Width="1100" Height="720"
+        Background="Transparent"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="-1">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <TransitioningContentControl Content="{Binding CurrentPage}" />
+    <Grid ColumnDefinitions="240,*" Background="{StaticResource WindowBgBrush}" DragDrop.AllowDrop="True">
 
+        <!-- ============ SIDEBAR ============ -->
+        <Panel Grid.Column="0">
+            <ExperimentalAcrylicBorder IsHitTestVisible="False">
+                <ExperimentalAcrylicBorder.Material>
+                    <ExperimentalAcrylicMaterial BackgroundSource="Digger"
+                                                 TintColor="#242426" TintOpacity="1" MaterialOpacity="0.6" />
+                </ExperimentalAcrylicBorder.Material>
+            </ExperimentalAcrylicBorder>
+
+            <DockPanel Margin="{StaticResource TitleBarInset}">
+                <!-- Header -->
+                <TextBlock DockPanel.Dock="Top" Text="Projects" FontSize="13" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="16,8,16,8" />
+
+                <!-- Search -->
+                <TextBox DockPanel.Dock="Top" Text="{Binding SearchText}" PlaceholderText="Search"
+                         Margin="12,0,12,8" />
+
+                <!-- Bottom actions -->
+                <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,*" Margin="12,8,12,12" ColumnSpacing="8">
+                    <Button Grid.Column="0" Content="+ New" Command="{Binding NewProjectCommand}"
+                            HorizontalAlignment="Stretch" Classes="accent" />
+                    <Button Grid.Column="1" Content="Import…" Command="{Binding ImportCommand}"
+                            HorizontalAlignment="Stretch"
+                            ToolTip.Tip="Import a .tshin file you downloaded (or drag &amp; drop one here)" />
+                </Grid>
+
+                <!-- Project list -->
+                <ListBox Classes="sidebar" ItemsSource="{Binding Projects}"
+                         SelectedItem="{Binding SelectedProject}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:ProjectSummary">
+                            <StackPanel Spacing="2">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Medium"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <Border Background="{StaticResource ControlBgBrush}" CornerRadius="4"
+                                            Padding="4,0" VerticalAlignment="Center"
+                                            IsVisible="{Binding IsImported}">
+                                        <TextBlock Text="imported" FontSize="9"
+                                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock Text="{Binding Description}" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Panel>
+
+        <!-- ============ RIGHT PANE ============ -->
+        <Panel Grid.Column="1" Background="{StaticResource ContentBgBrush}">
+            <!-- Editor -->
+            <ContentControl Content="{Binding CurrentEditor}" IsVisible="{Binding HasEditor}" />
+
+            <!-- Empty state -->
+            <StackPanel IsVisible="{Binding !HasEditor}" VerticalAlignment="Center"
+                        HorizontalAlignment="Center" Spacing="10">
+                <TextBlock Text="Tshin" FontSize="40" FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                <TextBlock Text="Select a project from the sidebar, or create a new one."
+                           Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Panel>
+    </Grid>
 </Window>

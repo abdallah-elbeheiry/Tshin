@@ -3,119 +3,255 @@
              xmlns:vm="clr-namespace:Tshin.ViewModels"
              x:Class="Tshin.Views.EditorView"
              x:DataType="vm:EditorViewModel"
-             x:CompileBindings="False">
-    <Panel Background="{StaticResource DarkBackground}">
-        <DockPanel Margin="20">
-            <!-- Toolbar -->
-            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,20">
-                <Button Content="Back" Command="{Binding BackCommand}" Classes="accent"/>
-                <Separator Height="20" VerticalAlignment="Center"/>
-                <Button Content="Add Node" Command="{Binding AddNodeCommand}" Classes="primary"/>
-                <Button Content="Save to .tshin" Command="{Binding SaveCommand}" Classes="secondary"/>
-                <TextBlock Text="Unsaved changes" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" Foreground="{StaticResource AccentPink}" Margin="10,0,0,0" FontWeight="Bold"/>
-            </StackPanel>
+             Focusable="True">
 
-            <Grid ColumnDefinitions="*, 300">
-                <!-- Editor Area -->
-                <ScrollViewer Grid.Column="0" Padding="0,0,20,0">
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Meta+S" Command="{Binding SaveCommand}" />
+        <KeyBinding Gesture="Meta+R" Command="{Binding RunCommand}" />
+    </UserControl.KeyBindings>
+
+    <DockPanel>
+        <!-- ============ TOOLBAR ============ -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource ContentBgBrush}"
+                BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="0,0,0,1"
+                Padding="16,30,16,10">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ProjectName}" FontSize="15" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                    <Border Background="{StaticResource ControlBgBrush}" CornerRadius="4" Padding="6,1"
+                            VerticalAlignment="Center" IsVisible="{Binding IsDirty}">
+                        <TextBlock Text="Edited" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" />
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Button Content="+ Add Node" Command="{Binding AddNodeCommand}" Classes="ghost" />
+                    <Button Content="Run" Command="{Binding RunCommand}" Classes="ghost" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <ToggleButton Content="Snap" Classes="ghost" IsChecked="{Binding SnapToGrid}"
+                                  ToolTip.Tip="Snap nodes to grid" />
+                    <Border Width="1" Background="{StaticResource SeparatorBrush}" Margin="4,2" />
+                    <Button Content="−" Command="{Binding ZoomOutCommand}" Classes="ghost" ToolTip.Tip="Zoom out" />
+                    <Button Content="Fit" Command="{Binding ZoomToFitCommand}" Classes="ghost" ToolTip.Tip="Zoom to fit" />
+                    <Button Content="+" Command="{Binding ZoomInCommand}" Classes="ghost" ToolTip.Tip="Zoom in" />
+                    <Button Content="Save" Command="{Binding SaveCommand}" Classes="accent" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============ CANVAS + INSPECTOR ============ -->
+        <Grid>
+            <!-- Viewport: receives pan / zoom / background interactions -->
+            <Border x:Name="Viewport" Background="{StaticResource CanvasBgBrush}" ClipToBounds="True"
+                    PointerPressed="OnViewportPressed" PointerMoved="OnViewportMoved"
+                    PointerReleased="OnViewportReleased" PointerWheelChanged="OnViewportWheel"
+                    DoubleTapped="OnViewportDoubleTapped">
+
+                <!-- World space (pan + zoom applied here) -->
+                <Panel x:Name="World" Width="6000" Height="6000" HorizontalAlignment="Left" VerticalAlignment="Top"
+                       RenderTransformOrigin="0,0">
+                    <Panel.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="{Binding Zoom}" ScaleY="{Binding Zoom}" />
+                            <TranslateTransform X="{Binding OffsetX}" Y="{Binding OffsetY}" />
+                        </TransformGroup>
+                    </Panel.RenderTransform>
+
+                    <!-- Wires (behind nodes) -->
+                    <ItemsControl ItemsSource="{Binding Connections}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ConnectionViewModel">
+                                <Path Data="{Binding Geometry}" Stroke="{StaticResource AccentBrush}"
+                                      StrokeThickness="2" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Temp wire shown while dragging a connection -->
+                    <Path x:Name="TempWire" Stroke="{StaticResource AccentHoverBrush}" StrokeThickness="2"
+                          StrokeDashArray="4,3" IsVisible="False" />
+
+                    <!-- Nodes -->
                     <ItemsControl ItemsSource="{Binding Nodes}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.Styles>
+                            <Style Selector="ContentPresenter" x:DataType="vm:NodeViewModel">
+                                <Setter Property="Canvas.Left" Value="{Binding X}" />
+                                <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                            </Style>
+                        </ItemsControl.Styles>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:NodeViewModel">
-                                <Border Background="{StaticResource CardBackground}" BorderBrush="{StaticResource DeepPurple}" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,0,0,15">
-                                    <StackPanel Spacing="10">
-                                        <DockPanel>
-                                            <TextBlock Text="Node ID: " VerticalAlignment="Center" Foreground="LightGray"/>
-                                            <Button DockPanel.Dock="Right" Content="Remove Node" 
-                                                    Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveNodeCommand}"
-                                                    CommandParameter="{Binding}"
-                                                    Classes="accent" Padding="5,2"/>
-                                            <TextBox Text="{Binding Id}" Margin="10,0,0,0"/>
-                                        </DockPanel>
-                                        
-                                        <TextBlock Text="Display Text:" Foreground="LightGray"/>
-                                        <TextBox Text="{Binding DisplayText}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60"/>
-                                        
-                                        <TextBlock Text="Choices:" FontWeight="Bold" Margin="0,10,0,0" Foreground="LightGray"/>
+                                <Border Width="240" Background="{StaticResource CardBgBrush}" CornerRadius="10"
+                                        BorderThickness="2" BorderBrush="Transparent"
+                                        Classes.selected="{Binding IsSelected}">
+                                    <Border.Styles>
+                                        <Style Selector="Border.selected">
+                                            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                        </Style>
+                                    </Border.Styles>
+                                    <StackPanel>
+                                        <!-- Header (height 34) -->
+                                        <Panel Height="34" PointerPressed="OnNodeHeaderPressed">
+                                            <Border CornerRadius="10,10,0,0" Background="#33000000" />
+                                            <TextBlock Text="{Binding Id}" Margin="14,0" VerticalAlignment="Center"
+                                                       FontWeight="SemiBold" FontSize="13"
+                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <!-- Input pin -->
+                                            <Ellipse Width="12" Height="12" Margin="-6,0,0,0"
+                                                     HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                     Fill="{StaticResource ControlBgBrush}"
+                                                     Stroke="{StaticResource AccentBrush}" StrokeThickness="2"
+                                                     PointerPressed="OnInputPinPressed" />
+                                        </Panel>
+
+                                        <!-- Display text (height 64) -->
+                                        <Border Height="64" Padding="8,4">
+                                            <TextBox Text="{Binding DisplayText}" TextWrapping="Wrap"
+                                                     AcceptsReturn="True" FontSize="12" BorderThickness="0"
+                                                     Background="Transparent" Padding="4" />
+                                        </Border>
+
+                                        <!-- Choices -->
                                         <ItemsControl ItemsSource="{Binding Choices}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate x:DataType="vm:ChoiceViewModel">
-                                                    <Border BorderBrush="#444" BorderThickness="1" Padding="8" Margin="0,0,0,8" CornerRadius="4" Background="#252525">
-                                                        <Grid ColumnDefinitions="*, *, Auto">
-                                                            <TextBox Grid.Column="0" Text="{Binding DisplayText}" Watermark="Choice text" Margin="0,0,10,0"/>
-                                                            <ComboBox Grid.Column="1" 
-                                                                      ItemsSource="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).Nodes}"
-                                                                      SelectedItem="{Binding TargetNode}"
-                                                                      HorizontalAlignment="Stretch">
-                                                                <ComboBox.ItemTemplate>
-                                                                    <DataTemplate x:DataType="vm:NodeViewModel">
-                                                                        <TextBlock Text="{Binding Id}"/>
-                                                                    </DataTemplate>
-                                                                </ComboBox.ItemTemplate>
-                                                            </ComboBox>
-                                                            <Button Grid.Column="2" Content="X" 
-                                                                    Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveChoiceCommand}"
-                                                                    CommandParameter="{Binding}"
-                                                                    Classes="accent" Margin="10,0,0,0"/>
-                                                        </Grid>
-                                                    </Border>
+                                                    <Panel Height="40">
+                                                        <!-- Each choice is its own block -->
+                                                        <Border Margin="8,5,14,5" Background="{StaticResource ControlBgBrush}"
+                                                                CornerRadius="6" Padding="6,0">
+                                                            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                                                <TextBox Grid.Column="0" Text="{Binding DisplayText}"
+                                                                         FontSize="11" Padding="4,2"
+                                                                         Background="Transparent" BorderThickness="0"
+                                                                         VerticalContentAlignment="Center" />
+                                                                <Button Grid.Column="1" Content="✕" Classes="ghost"
+                                                                        Padding="6,0" Margin="2,0,0,0" FontSize="10"
+                                                                        Command="{Binding $parent[ItemsControl].((vm:EditorViewModel)DataContext).RemoveChoiceCommand}"
+                                                                        CommandParameter="{Binding}" />
+                                                            </Grid>
+                                                        </Border>
+                                                        <!-- Output pin -->
+                                                        <Ellipse Width="12" Height="12" Margin="0,0,-6,0"
+                                                                 HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                 Fill="{StaticResource AccentBrush}"
+                                                                 PointerPressed="OnOutputPinPressed" />
+                                                    </Panel>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
-                                        
-                                        <Button Content="+ Add Choice" Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).AddChoiceCommand}" 
-                                                CommandParameter="{Binding}" HorizontalAlignment="Stretch" Classes="secondary"/>
+
+                                        <Button Content="+ choice" Classes="ghost" Margin="8,4,8,8"
+                                                HorizontalAlignment="Stretch" FontSize="11"
+                                                Command="{Binding $parent[ItemsControl].((vm:EditorViewModel)DataContext).AddChoiceCommand}"
+                                                CommandParameter="{Binding}" />
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                </ScrollViewer>
-
-                <!-- Graph Visualization -->
-                <Border Grid.Column="1" Background="#1A1A1A" CornerRadius="8" Padding="15">
-                    <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Text="Directed Graph" FontWeight="Bold" FontSize="18" Margin="0,0,0,15" Foreground="White" HorizontalAlignment="Center"/>
-                        <ScrollViewer>
-                            <ItemsControl ItemsSource="{Binding Nodes}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:NodeViewModel">
-                                        <StackPanel Margin="0,0,0,20">
-                                            <Border Background="{StaticResource DeepPurple}" CornerRadius="4" Padding="5,2" HorizontalAlignment="Left">
-                                                <TextBlock Text="{Binding Id}" FontWeight="Bold" Foreground="White"/>
-                                            </Border>
-                                            <ItemsControl ItemsSource="{Binding Choices}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate x:DataType="vm:ChoiceViewModel">
-                                                        <StackPanel Orientation="Horizontal" Margin="15,2,0,0">
-                                                            <TextBlock Text="└─▶ " Foreground="Gray"/>
-                                                            <TextBlock Text="{Binding TargetNode.Id}" Foreground="{StaticResource AccentPink}"/>
-                                                        </StackPanel>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </DockPanel>
-                </Border>
-            </Grid>
-        </DockPanel>
-        
-        <!-- Unsaved Changes Dialog Overlay -->
-        <Panel Background="#AA000000" IsVisible="{Binding ShowUnsavedChangesDialog}">
-            <Border Background="{StaticResource CardBackground}" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="30" CornerRadius="12" Width="400">
-                <StackPanel Spacing="20">
-                    <TextBlock Text="Unsaved Changes" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"/>
-                    <TextBlock Text="You have unsaved changes. Do you want to save before leaving?" TextWrapping="Wrap" TextAlignment="Center" Foreground="LightGray"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
-                        <Button Content="Save &amp; Exit" Command="{Binding SaveCommand}" Classes="primary" Padding="10,5"/>
-                        <Button Content="Exit Without Saving" Command="{Binding ExitWithoutSavingCommand}" Classes="accent" Padding="10,5"/>
-                        <Button Content="Cancel" Command="{Binding CancelBackCommand}" Padding="10,5"/>
-                    </StackPanel>
-                </StackPanel>
+                </Panel>
             </Border>
-        </Panel>
-    </Panel>
+
+            <!-- Inspector (shows the selected node) -->
+            <Border Width="260" HorizontalAlignment="Right" Margin="0"
+                    Background="{StaticResource ContentBgBrush}"
+                    BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="1,0,0,0"
+                    IsVisible="{Binding SelectedNode, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <ContentControl Content="{Binding SelectedNode}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate x:DataType="vm:NodeViewModel">
+                            <StackPanel Margin="16" Spacing="6">
+                                <TextBlock Text="Node" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6" />
+                                <TextBlock Text="ID" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBox Text="{Binding Id}" />
+                                <TextBlock Text="Display text" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0" />
+                                <TextBox Text="{Binding DisplayText}" TextWrapping="Wrap" AcceptsReturn="True"
+                                         MinHeight="90" />
+
+                                <Button Content="Delete node" Classes="accent" Margin="0,12,0,0"
+                                        HorizontalAlignment="Stretch"
+                                        Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveNodeCommand}"
+                                        CommandParameter="{Binding}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
+            </Border>
+
+            <!-- Empty-graph hint -->
+            <StackPanel IsVisible="{Binding !HasNodes}" IsHitTestVisible="False"
+                        VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="6">
+                <TextBlock Text="No nodes yet" FontSize="15" Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="Double-click the canvas or press “+ Add Node”."
+                           FontSize="12" Foreground="{StaticResource TextTertiaryBrush}"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <!-- ============ RUN (play mode) overlay ============ -->
+            <Panel Background="#D0000000"
+                   IsVisible="{Binding Player, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <ContentControl Content="{Binding Player}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate x:DataType="vm:PlayerViewModel">
+                            <Border Width="540" MaxHeight="560" VerticalAlignment="Center"
+                                    HorizontalAlignment="Center" Background="{StaticResource CardBgBrush}"
+                                    CornerRadius="14" Padding="28" BoxShadow="0 16 48 0 #80000000">
+                                <DockPanel>
+                                    <!-- Close -->
+                                    <Button DockPanel.Dock="Top" Content="✕" Classes="ghost" Padding="6,2"
+                                            HorizontalAlignment="Right" FontSize="13"
+                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).CloseRunCommand}" />
+
+                                    <!-- Story text -->
+                                    <TextBlock DockPanel.Dock="Top" Text="{Binding Current.DisplayText}"
+                                               FontSize="20" TextWrapping="Wrap" TextAlignment="Center"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               Margin="0,4,0,24" />
+
+                                    <!-- End-of-branch -->
+                                    <StackPanel DockPanel.Dock="Bottom" IsVisible="{Binding IsEnd}" Spacing="14">
+                                        <TextBlock Text="The End" FontSize="14" FontStyle="Italic"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   HorizontalAlignment="Center" />
+                                        <Button Content="Restart" Classes="accent" HorizontalAlignment="Center"
+                                                Command="{Binding RestartCommand}" />
+                                    </StackPanel>
+
+                                    <!-- Choices -->
+                                    <ItemsControl ItemsSource="{Binding Current.Choices}" IsVisible="{Binding !IsEnd}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><StackPanel Spacing="10" /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ChoiceViewModel">
+                                                <Button Content="{Binding DisplayText}"
+                                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                        Padding="14" FontSize="15"
+                                                        IsEnabled="{Binding Target, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:PlayerViewModel)DataContext).ChooseCommand}"
+                                                        CommandParameter="{Binding}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
+            </Panel>
+        </Grid>
+    </DockPanel>
 </UserControl>
