@@ -17,4 +17,5 @@ public sealed class ProjectSummary
 
     /// <summary>True when the project originated from an imported (downloaded) file.</summary>
     public bool IsImported { get; init; }
+    public string? FilePath { get; set; }
 }

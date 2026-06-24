@@ -27,6 +27,11 @@ public interface IProjectService
     /// Writes the story to disk in the engine's native format (.tshin).
     /// </summary>
     Task ExportProjectAsync(StorySnapshot snapshot, string filePath);
+    
+    /// <summary>
+    ///  Returns the file path where the project was saved if it exists, or null.
+    /// </summary>
+    Task<string?> GetProjectFilePathAsync(string projectId);
 
     Task SaveProjectAsync(StorySnapshot snapshot);
 }

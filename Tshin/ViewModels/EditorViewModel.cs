@@ -221,9 +221,20 @@ public partial class EditorViewModel : ViewModelBase
     [RelayCommand]
     private async Task Save()
     {
+        var path = await _projectService.GetProjectFilePathAsync(_projectId);
+        if (string.IsNullOrEmpty(path))
+        {
+            // If no path, we want the view to trigger Export.
+            // We can use an event or a callback.
+            RequestExport?.Invoke();
+            return;
+        }
+
         await _projectService.SaveProjectAsync(BuildSnapshot());
         IsDirty = false;
     }
+
+    public event Action? RequestExport;
 
     [RelayCommand]
     private async Task Export(string filePath)
