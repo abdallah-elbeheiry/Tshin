@@ -1,10 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Tshin.ViewModels;
 
 namespace Tshin.Views;
@@ -72,9 +76,49 @@ public partial class EditorView : UserControl
         if (Vm is null) return;
         Focus();
         Vm.SelectNode(null);
-        _mode = Mode.Pan;
-        _last = e.GetPosition(Viewport);
-        e.Pointer.Capture(Viewport);
+        
+        var pos = e.GetPosition(Viewport);
+        _lastRightClickPosition = pos;
+
+        if (e.GetCurrentPoint(Viewport).Properties.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed)
+        {
+            _mode = Mode.Pan;
+            _last = pos;
+            e.Pointer.Capture(Viewport);
+        }
+    }
+
+    private Point _lastRightClickPosition;
+
+    private void OnCreateNodeClick(object? sender, RoutedEventArgs e)
+    {
+        if (Vm is not { } vm) return;
+        var world = ToWorld(_lastRightClickPosition);
+        vm.CreateNodeAt(world.X - NodeLayout.Width / 2, world.Y);
+    }
+
+    private async void OnExportClick(object? sender, RoutedEventArgs e)
+    {
+        if (Vm is not { } vm) return;
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Export Story",
+            FileTypeChoices = new List<FilePickerFileType>
+            {
+                new("Tshin Story Files") { Patterns = new[] { "*.tshin" } }
+            },
+            DefaultExtension = "tshin",
+            SuggestedFileName = $"{vm.ProjectName}.tshin"
+        });
+
+        if (file != null)
+        {
+            await vm.ExportCommand.ExecuteAsync(file.Path.LocalPath);
+        }
     }
 
     private void OnViewportMoved(object? sender, PointerEventArgs e)
@@ -139,13 +183,6 @@ public partial class EditorView : UserControl
         e.Handled = true;
     }
 
-    private void OnViewportDoubleTapped(object? sender, TappedEventArgs e)
-    {
-        if (Vm is not { } vm) return;
-        var world = ToWorld(e.GetPosition(Viewport));
-        vm.CreateNodeAt(world.X - NodeLayout.Width / 2, world.Y);
-        e.Handled = true;
-    }
 
     // ---- node dragging ------------------------------------------------------
 

@@ -39,6 +39,7 @@
                     <Button Content="Fit" Command="{Binding ZoomToFitCommand}" Classes="ghost" ToolTip.Tip="Zoom to fit" />
                     <Button Content="+" Command="{Binding ZoomInCommand}" Classes="ghost" ToolTip.Tip="Zoom in" />
                     <Button Content="Save" Command="{Binding SaveCommand}" Classes="accent" />
+                    <Button Content="Export" Click="OnExportClick" Classes="accent" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -48,8 +49,12 @@
             <!-- Viewport: receives pan / zoom / background interactions -->
             <Border x:Name="Viewport" Background="{StaticResource CanvasBgBrush}" ClipToBounds="True"
                     PointerPressed="OnViewportPressed" PointerMoved="OnViewportMoved"
-                    PointerReleased="OnViewportReleased" PointerWheelChanged="OnViewportWheel"
-                    DoubleTapped="OnViewportDoubleTapped">
+                    PointerReleased="OnViewportReleased" PointerWheelChanged="OnViewportWheel">
+                <Border.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Create Node" Click="OnCreateNodeClick" />
+                    </ContextMenu>
+                </Border.ContextMenu>
 
                 <!-- World space (pan + zoom applied here) -->
                 <Panel x:Name="World" Width="6000" Height="6000" HorizontalAlignment="Left" VerticalAlignment="Top"
@@ -195,7 +200,7 @@
                         VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="6">
                 <TextBlock Text="No nodes yet" FontSize="15" Foreground="{StaticResource TextSecondaryBrush}"
                            HorizontalAlignment="Center" />
-                <TextBlock Text="Double-click the canvas or press “+ Add Node”."
+                <TextBlock Text="Right-click the canvas or press “+ Add Node”."
                            FontSize="12" Foreground="{StaticResource TextTertiaryBrush}"
                            HorizontalAlignment="Center" />
             </StackPanel>
