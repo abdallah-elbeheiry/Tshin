@@ -1,117 +1,105 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Tshin.Core.Utils;
+using CommunityToolkit.Mvvm.Input;
+using Tshin.Models;
+using Tshin.Services;
 
 namespace Tshin.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
+    private readonly IProjectService _projectService;
+    private readonly List<ProjectSummary> _allProjects = new();
+
+    /// <summary>Projects shown in the sidebar (after applying the search filter).</summary>
+    public ObservableCollection<ProjectSummary> Projects { get; } = new();
+
     [ObservableProperty]
-    private ViewModelBase _currentPage;
+    private ProjectSummary? _selectedProject;
 
-    public MainWindowViewModel()
+    [ObservableProperty]
+    private EditorViewModel? _currentEditor;
+
+    [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    /// <summary>True while no project is open — drives the right-pane empty state.</summary>
+    public bool HasEditor => CurrentEditor is not null;
+
+    /// <summary>Set by the view to let the VM ask for a file to import.</summary>
+    public Func<Task<string?>>? ImportFileRequest { get; set; }
+
+    public MainWindowViewModel() : this(new MockProjectService()) { }
+
+    public MainWindowViewModel(IProjectService projectService)
     {
-        _currentPage = new MainMenuViewModel(this);
+        _projectService = projectService;
+        _ = LoadProjectsAsync();
     }
 
-    public void NavigateToMainMenu()
+    private async Task LoadProjectsAsync(string? selectId = null)
     {
-        CurrentPage = new MainMenuViewModel(this);
+        var projects = await _projectService.GetProjectsAsync();
+        _allProjects.Clear();
+        _allProjects.AddRange(projects);
+        ApplyFilter();
+
+        if (selectId is not null)
+            SelectedProject = Projects.FirstOrDefault(p => p.Id == selectId);
     }
 
-    public void NavigateToCreateMenu()
+    partial void OnSearchTextChanged(string value) => ApplyFilter();
+
+    private void ApplyFilter()
     {
-        CurrentPage = new CreateMenuViewModel(this);
+        var filter = SearchText?.Trim();
+        IEnumerable<ProjectSummary> matches = _allProjects;
+        if (!string.IsNullOrEmpty(filter))
+            matches = matches.Where(p => p.Name.Contains(filter, StringComparison.OrdinalIgnoreCase));
+
+        Projects.Clear();
+        foreach (var p in matches)
+            Projects.Add(p);
     }
 
-    public void StartNewEpic()
+    async partial void OnSelectedProjectChanged(ProjectSummary? value)
     {
-        NodeManager.ClearNodes();
-        CurrentPage = new EditorViewModel(this);
-    }
-
-    public void RequestExit()
-    {
-        // This would typically involve an event or a service to close the window
-        // For simplicity, we can use Environment.Exit for now or just let the user close it
-        Environment.Exit(0);
-    }
-
-    public async void TriggerLoadForPlay()
-    {
-        string filePath = await RequestFilePath();
-        if (!string.IsNullOrEmpty(filePath))
+        if (value is null)
         {
-            if (await LoadFromFileAsync(filePath))
-            {
-                CurrentPage = new PlayerViewModel(this);
-            }
+            CurrentEditor = null;
+            return;
         }
+
+        var snapshot = await _projectService.OpenProjectAsync(value.Id);
+        CurrentEditor = new EditorViewModel(snapshot, value.Name, _projectService);
     }
 
-    public async void TriggerLoadForEdit()
+    partial void OnCurrentEditorChanged(EditorViewModel? value) => OnPropertyChanged(nameof(HasEditor));
+
+    [RelayCommand]
+    private async Task NewProject()
     {
-        string filePath = await RequestFilePath();
-        if (!string.IsNullOrEmpty(filePath))
-        {
-            if (await LoadFromFileAsync(filePath))
-            {
-                CurrentPage = new EditorViewModel(this);
-            }
-        }
+        var summary = await _projectService.CreateProjectAsync("Untitled Epic");
+        await LoadProjectsAsync(summary.Id);
     }
 
-    public async void TriggerSave()
+    [RelayCommand]
+    private async Task Import()
     {
-        // We'll need a way to know where to save
-        // For now, let's just trigger the file picker
-        // Ideally we store the current file path
-        string filePath = await RequestSavePath();
-        if (!string.IsNullOrEmpty(filePath))
-        {
-            await SaveToFileAsync(filePath);
-        }
+        if (ImportFileRequest is null) return;
+        var path = await ImportFileRequest();
+        if (!string.IsNullOrEmpty(path))
+            await ImportFromPathAsync(path);
     }
 
-    public void NavigateBackFromEditor()
+    /// <summary>Imports a dropped/downloaded file and selects the new project.</summary>
+    public async Task ImportFromPathAsync(string filePath)
     {
-        if (CurrentPage is EditorViewModel { IsDirty: true })
-        {
-            // We should show a dialog, but for now let's just use a simple flag or assume we need to ask
-            // Since we can't easily do a blocking dialog from VM without a service, 
-            // I'll implement a simple "NeedsSave" state or just navigate for now and come back to it.
-            // Requirement says: "tells you that the file is unsaved do you want to save?"
-            // I'll add a boolean to show a confirmation overlay in the view.
-        }
-        NavigateToMainMenu();
-    }
-
-    // Communication with View for file picking
-    public Func<Task<string>>? FilePickerRequest { get; set; }
-    public Func<Task<string>>? FileSaveRequest { get; set; }
-
-    private async Task<string> RequestFilePath() => FilePickerRequest != null ? await FilePickerRequest() : string.Empty;
-    private async Task<string> RequestSavePath() => FileSaveRequest != null ? await FileSaveRequest() : string.Empty;
-
-    public async Task SaveToFileAsync(string filePath)
-    {
-        await FileWriter.SaveFileAsync(filePath);
-    }
-
-    public async Task<bool> LoadFromFileAsync(string filePath)
-    {
-        if (string.IsNullOrEmpty(filePath)) return false;
-
-        try
-        {
-            await FileReader.LoadFileAsync(filePath);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error loading file: {ex.Message}");
-            return false;
-        }
+        var summary = await _projectService.ImportProjectAsync(filePath);
+        await LoadProjectsAsync(summary.Id);
     }
 }

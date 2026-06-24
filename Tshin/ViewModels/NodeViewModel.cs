@@ -1,86 +1,50 @@
+using System;
 using System.Collections.ObjectModel;
-using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Tshin.Core.Models;
-using Tshin.Core.Utils;
 
 namespace Tshin.ViewModels;
 
 public partial class NodeViewModel : ViewModelBase
 {
-    public NodeViewModel(INode node, System.Action? onChanged = null)
+    private readonly Action _onChanged;
+
+    [ObservableProperty]
+    private string _id;
+
+    [ObservableProperty]
+    private string _displayText;
+
+    [ObservableProperty]
+    private double _x;
+
+    [ObservableProperty]
+    private double _y;
+
+    [ObservableProperty]
+    private bool _isSelected;
+
+    public ObservableCollection<ChoiceViewModel> Choices { get; } = new();
+
+    public NodeViewModel(string id, string displayText, double x, double y, Action onChanged)
     {
-        Model = node;
+        _id = id;
+        _displayText = displayText;
+        _x = x;
+        _y = y;
         _onChanged = onChanged;
-        Choices = [];
     }
 
-    private readonly System.Action? _onChanged;
+    partial void OnIdChanged(string value) => _onChanged();
+    partial void OnDisplayTextChanged(string value) => _onChanged();
+    // X/Y changes happen during drags; mark dirty so the move can be saved.
+    partial void OnXChanged(double value) => _onChanged();
+    partial void OnYChanged(double value) => _onChanged();
 
-    public string Id
+    public ChoiceViewModel AddChoice(NodeViewModel? target = null)
     {
-        get => Model.Id;
-        set
-        {
-            if (Model.Id == value) return;
-            var oldId = Model.Id;
-            NodeManager.ModifyNodeId(oldId, value);
-            OnPropertyChanged(nameof(Id));
-            _onChanged?.Invoke();
-        }
+        var choice = new ChoiceViewModel("New choice", target, _onChanged);
+        Choices.Add(choice);
+        _onChanged();
+        return choice;
     }
-
-    public string DisplayText
-    {
-        get => Model.DisplayText;
-        set
-        {
-            if (Model.DisplayText == value) return;
-            Model.DisplayText = value;
-            OnPropertyChanged(nameof(DisplayText));
-            _onChanged?.Invoke();
-        }
-    }
-
-    public ObservableCollection<ChoiceViewModel> Choices { get; }
-
-    public void InitializeChoices(ObservableCollection<NodeViewModel> allNodes)
-    {
-        Choices.Clear();
-        if (Model is IBranchingNode branchingNode)
-        {
-            foreach (var choice in branchingNode.Choices)
-            {
-                var targetVm = allNodes.FirstOrDefault(n => n.Model == choice.Node);
-                Choices.Add(new ChoiceViewModel(choice, targetVm, _onChanged));
-            }
-        }
-    }
-
-    public void AddChoice(NodeViewModel targetNodeVm)
-    {
-        if (Model is IBranchingNode branchingNode)
-        {
-            var choice = new StoryChoice(targetNodeVm.Model, "New Choice");
-            NodeManager.AddChoice(choice, branchingNode);
-            Choices.Add(new ChoiceViewModel(choice, targetNodeVm, _onChanged));
-            _onChanged?.Invoke();
-        }
-    }
-
-    public NodeViewModel? TargetNodeProxy
-    {
-        get => null;
-        set { if (value != null) AddChoice(value); }
-    }
-
-    public void RemoveChoice(ChoiceViewModel choiceVm)
-    {
-        if (Model is not IBranchingNode branchingNode) return;
-        NodeManager.RemoveChoice(choiceVm.Model, branchingNode);
-        Choices.Remove(choiceVm);
-        _onChanged?.Invoke();
-    }
-
-    public INode Model { get; }
 }

@@ -1,45 +1,36 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Tshin.Core.Models;
-using Tshin.Core.Utils;
-using System.Linq;
 
 namespace Tshin.ViewModels;
 
+/// <summary>
+/// A play-through of the current graph (Run mode). Walks the live
+/// <see cref="NodeViewModel"/> graph, so unsaved edits are playable immediately.
+/// </summary>
 public partial class PlayerViewModel : ViewModelBase
 {
-    private readonly MainWindowViewModel _mainViewModel;
+    private readonly NodeViewModel? _start;
 
     [ObservableProperty]
-    private NodeViewModel? _currentNode;
+    private NodeViewModel? _current;
 
-    public PlayerViewModel(MainWindowViewModel mainViewModel)
+    public PlayerViewModel(NodeViewModel? start)
     {
-        _mainViewModel = mainViewModel;
-        
-        var coreNodes = NodeManager.GetNodes().ToList();
-        var allNodeVms = coreNodes.Select(n => new NodeViewModel(n)).ToList();
-        
-        foreach (var nodeVm in allNodeVms)
-        {
-            nodeVm.InitializeChoices(new System.Collections.ObjectModel.ObservableCollection<NodeViewModel>(allNodeVms));
-        }
+        _start = start;
+        _current = start;
+    }
 
-        CurrentNode = allNodeVms.FirstOrDefault();
+    public bool IsEnd => Current is null || Current.Choices.Count == 0;
+
+    partial void OnCurrentChanged(NodeViewModel? value) => OnPropertyChanged(nameof(IsEnd));
+
+    [RelayCommand]
+    private void Choose(ChoiceViewModel? choice)
+    {
+        if (choice?.Target is { } target)
+            Current = target;
     }
 
     [RelayCommand]
-    private void SelectChoice(ChoiceViewModel choice)
-    {
-        if (choice.TargetNode != null)
-        {
-            CurrentNode = choice.TargetNode;
-        }
-    }
-
-    [RelayCommand]
-    private void BackToMenu()
-    {
-        _mainViewModel.NavigateToMainMenu();
-    }
+    private void Restart() => Current = _start;
 }

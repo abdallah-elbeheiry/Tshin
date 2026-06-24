@@ -1,0 +1,47 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- macOS-flavoured dark design tokens. -->
+
+    <!-- Surfaces -->
+    <Color x:Key="WindowBgColor">#1C1C1E</Color>
+    <Color x:Key="SidebarBgColor">#242426</Color>
+    <Color x:Key="ContentBgColor">#1E1E1E</Color>
+    <Color x:Key="CanvasBgColor">#161618</Color>
+    <Color x:Key="CardBgColor">#2C2C2E</Color>
+    <Color x:Key="CardBgHoverColor">#343436</Color>
+    <Color x:Key="ControlBgColor">#3A3A3C</Color>
+
+    <!-- Accent (macOS system blue) -->
+    <Color x:Key="AccentColor">#0A84FF</Color>
+    <Color x:Key="AccentHoverColor">#409CFF</Color>
+
+    <!-- Text -->
+    <Color x:Key="TextPrimaryColor">#F5F5F7</Color>
+    <Color x:Key="TextSecondaryColor">#98989D</Color>
+    <Color x:Key="TextTertiaryColor">#6E6E73</Color>
+
+    <!-- Lines -->
+    <Color x:Key="SeparatorColor">#3A3A3C</Color>
+    <Color x:Key="ControlBorderColor">#48484A</Color>
+
+    <!-- Brushes -->
+    <SolidColorBrush x:Key="WindowBgBrush" Color="{StaticResource WindowBgColor}" />
+    <SolidColorBrush x:Key="SidebarBgBrush" Color="{StaticResource SidebarBgColor}" Opacity="0.85" />
+    <SolidColorBrush x:Key="ContentBgBrush" Color="{StaticResource ContentBgColor}" />
+    <SolidColorBrush x:Key="CanvasBgBrush" Color="{StaticResource CanvasBgColor}" />
+    <SolidColorBrush x:Key="CardBgBrush" Color="{StaticResource CardBgColor}" />
+    <SolidColorBrush x:Key="CardBgHoverBrush" Color="{StaticResource CardBgHoverColor}" />
+    <SolidColorBrush x:Key="ControlBgBrush" Color="{StaticResource ControlBgColor}" />
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}" />
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="{StaticResource TextTertiaryColor}" />
+    <SolidColorBrush x:Key="SeparatorBrush" Color="{StaticResource SeparatorColor}" />
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="{StaticResource ControlBorderColor}" />
+
+    <!-- Metrics -->
+    <CornerRadius x:Key="ControlRadius">6</CornerRadius>
+    <CornerRadius x:Key="CardRadius">10</CornerRadius>
+    <Thickness x:Key="TitleBarInset">0,30,0,0</Thickness>
+</ResourceDictionary>

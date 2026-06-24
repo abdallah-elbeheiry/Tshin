@@ -1,0 +1,99 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ============ Buttons ============ -->
+    <Style Selector="Button">
+        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{StaticResource ControlRadius}" />
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.12" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource CardBgHoverBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{StaticResource TextPrimaryBrush}" />
+    </Style>
+
+    <!-- Accent / primary -->
+    <Style Selector="Button.accent">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.accent:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource AccentHoverBrush}" />
+        <Setter Property="TextElement.Foreground" Value="White" />
+    </Style>
+
+    <!-- Ghost / toolbar icon buttons -->
+    <Style Selector="Button.ghost">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Padding" Value="9,6" />
+    </Style>
+    <Style Selector="Button.ghost:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{StaticResource TextPrimaryBrush}" />
+    </Style>
+
+    <!-- ============ ToggleButton (ghost) ============ -->
+    <Style Selector="ToggleButton.ghost">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{StaticResource ControlRadius}" />
+        <Setter Property="Padding" Value="9,6" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="ToggleButton.ghost:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{StaticResource TextPrimaryBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.ghost:checked /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="TextElement.Foreground" Value="White" />
+    </Style>
+
+    <!-- ============ TextBox ============ -->
+    <Style Selector="TextBox">
+        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="{StaticResource ControlRadius}" />
+        <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
+        <Setter Property="SelectionBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+    <Style Selector="TextBox:focus">
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+
+    <!-- ============ Sidebar project list ============ -->
+    <Style Selector="ListBox.sidebar">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="ListBox.sidebar ListBoxItem">
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="Margin" Value="0,2" />
+        <Setter Property="CornerRadius" Value="{StaticResource ControlRadius}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+    </Style>
+    <Style Selector="ListBox.sidebar ListBoxItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource CardBgBrush}" />
+    </Style>
+    <Style Selector="ListBox.sidebar ListBoxItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+    </Style>
+</Styles>

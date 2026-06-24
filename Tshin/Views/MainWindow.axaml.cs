@@ -1,5 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Tshin.ViewModels;
 
@@ -10,56 +12,56 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        DataContextChanged += (sender, args) =>
+
+        DataContextChanged += (_, _) =>
         {
             if (DataContext is MainWindowViewModel vm)
-            {
-                vm.FilePickerRequest = ShowOpenFilePickerAsync;
-                vm.FileSaveRequest = ShowSaveFilePickerAsync;
-            }
+                vm.ImportFileRequest = ShowImportFilePickerAsync;
         };
+
+        AddHandler(DragDrop.DragOverEvent, OnDragOver);
+        AddHandler(DragDrop.DropEvent, OnDrop);
     }
 
-    private async Task<string> ShowOpenFilePickerAsync()
+    private static void OnDragOver(object? sender, DragEventArgs e)
+    {
+        e.DragEffects = e.DataTransfer.Contains(DataFormat.File)
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+    }
+
+    private async void OnDrop(object? sender, DragEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm) return;
+        if (!e.DataTransfer.Contains(DataFormat.File)) return;
+
+        var files = e.DataTransfer.TryGetFiles();
+        if (files is null) return;
+
+        foreach (var item in files.OfType<IStorageFile>())
+        {
+            var path = item.Path.LocalPath;
+            if (!string.IsNullOrEmpty(path))
+                await vm.ImportFromPathAsync(path);
+        }
+    }
+
+    private async Task<string?> ShowImportFilePickerAsync()
     {
         var topLevel = GetTopLevel(this);
-        if (topLevel == null) return string.Empty;
+        if (topLevel is null) return null;
 
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Open Tshin File",
-            FileTypeFilter = new[]
-            {
-                new FilePickerFileType("Tshin Files")
-                {
-                    Patterns = new[] { "*.tshin" }
-                }
-            },
-            AllowMultiple = false
+            Title = "Import Tshin Project",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Tshin Files") { Patterns = ["*.tshin"] },
+                new FilePickerFileType("All Files") { Patterns = ["*"] },
+            ],
         });
 
-        return files.Count >= 1 ? files[0].Path.LocalPath : string.Empty;
-    }
-
-    private async Task<string> ShowSaveFilePickerAsync()
-    {
-        var topLevel = GetTopLevel(this);
-        if (topLevel == null) return string.Empty;
-
-        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Save Tshin File",
-            FileTypeChoices = new[]
-            {
-                new FilePickerFileType("Tshin Files")
-                {
-                    Patterns = new[] { "*.tshin" }
-                }
-            },
-            DefaultExtension = "tshin",
-            SuggestedFileName = "story.tshin"
-        });
-
-        return file?.Path.LocalPath ?? string.Empty;
+        return files.Count >= 1 ? files[0].Path.LocalPath : null;
     }
 }
