@@ -78,6 +78,7 @@ public sealed class MockProjectService : IProjectService
             NodeCount = nodes.Count,
             LastModified = DateTimeOffset.Now,
             IsImported = true,
+            FilePath = filePath,
         };
 
         _projects[id] = summary;
@@ -92,6 +93,11 @@ public sealed class MockProjectService : IProjectService
 
     public async Task ExportProjectAsync(StorySnapshot snapshot, string filePath)
     {
+        if (_projects.TryGetValue(snapshot.ProjectId, out var summary))
+        {
+            summary.FilePath = filePath;
+        }
+
         NodeManager.ClearNodes();
         
         // Populate NodeManager from snapshot
@@ -122,7 +128,7 @@ public sealed class MockProjectService : IProjectService
         await FileWriter.SaveFileAsync(filePath);
     }
 
-    public Task SaveProjectAsync(StorySnapshot snapshot)
+    public async Task SaveProjectAsync(StorySnapshot snapshot)
     {
         _stories[snapshot.ProjectId] = Clone(snapshot);
         if (_projects.TryGetValue(snapshot.ProjectId, out var existing))
@@ -135,9 +141,23 @@ public sealed class MockProjectService : IProjectService
                 NodeCount = snapshot.Nodes.Count,
                 LastModified = DateTimeOffset.Now,
                 IsImported = existing.IsImported,
+                FilePath = existing.FilePath,
             };
+
+            if (!string.IsNullOrEmpty(existing.FilePath))
+            {
+                await ExportProjectAsync(snapshot, existing.FilePath);
+            }
         }
-        return Task.CompletedTask;
+    }
+
+    public Task<string?> GetProjectFilePathAsync(string projectId)
+    {
+        if (_projects.TryGetValue(projectId, out var summary))
+        {
+            return Task.FromResult(summary.FilePath);
+        }
+        return Task.FromResult<string?>(null);
     }
 
     private static StorySnapshot Clone(StorySnapshot source) => new()

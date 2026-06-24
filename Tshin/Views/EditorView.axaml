@@ -38,7 +38,7 @@
                     <Button Content="−" Command="{Binding ZoomOutCommand}" Classes="ghost" ToolTip.Tip="Zoom out" />
                     <Button Content="Fit" Command="{Binding ZoomToFitCommand}" Classes="ghost" ToolTip.Tip="Zoom to fit" />
                     <Button Content="+" Command="{Binding ZoomInCommand}" Classes="ghost" ToolTip.Tip="Zoom in" />
-                    <Button Content="Save" Command="{Binding SaveCommand}" Classes="accent" />
+                    <Button Content="Save" Click="OnSaveClick" Classes="accent" />
                     <Button Content="Export" Click="OnExportClick" Classes="accent" />
                 </StackPanel>
             </Grid>

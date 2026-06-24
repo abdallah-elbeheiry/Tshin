@@ -61,10 +61,20 @@ public partial class EditorView : UserControl
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        if (_vm is not null) _vm.RequestFit -= FitToView;
+        if (_vm is not null)
+        {
+            _vm.RequestFit -= FitToView;
+            _vm.RequestExport -= OnRequestExport;
+        }
         _vm = Vm;
-        if (_vm is not null) _vm.RequestFit += FitToView;
+        if (_vm is not null)
+        {
+            _vm.RequestFit += FitToView;
+            _vm.RequestExport += OnRequestExport;
+        }
     }
+
+    private void OnRequestExport() => OnExportClick(null, new RoutedEventArgs());
 
     private Point ToWorld(Point p)
         => Vm is { } vm ? new Point((p.X - vm.OffsetX) / vm.Zoom, (p.Y - vm.OffsetY) / vm.Zoom) : p;
@@ -119,6 +129,12 @@ public partial class EditorView : UserControl
         {
             await vm.ExportCommand.ExecuteAsync(file.Path.LocalPath);
         }
+    }
+
+    private async void OnSaveClick(object? sender, RoutedEventArgs e)
+    {
+        if (Vm is not { } vm) return;
+        await vm.SaveCommand.ExecuteAsync(null);
     }
 
     private void OnViewportMoved(object? sender, PointerEventArgs e)
