@@ -8,6 +8,8 @@
     <UserControl.KeyBindings>
         <KeyBinding Gesture="Meta+S" Command="{Binding SaveCommand}" />
         <KeyBinding Gesture="Meta+R" Command="{Binding RunCommand}" />
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
+        <KeyBinding Gesture="Ctrl+R" Command="{Binding RunCommand}" />
     </UserControl.KeyBindings>
 
     <DockPanel>
@@ -36,7 +38,8 @@
                                   ToolTip.Tip="Snap nodes to grid" />
                     <Border Width="1" Background="{StaticResource SeparatorBrush}" Margin="4,2" />
                     <Button Content="−" Command="{Binding ZoomOutCommand}" Classes="ghost" ToolTip.Tip="Zoom out" />
-                    <Button Content="Fit" Command="{Binding ZoomToFitCommand}" Classes="ghost" ToolTip.Tip="Zoom to fit" />
+                    <Button Content="Fit" Command="{Binding ZoomToFitCommand}" Classes="ghost"
+                            ToolTip.Tip="Zoom to fit" />
                     <Button Content="+" Command="{Binding ZoomInCommand}" Classes="ghost" ToolTip.Tip="Zoom in" />
                     <Button Content="Save" Click="OnSaveClick" Classes="accent" />
                     <Button Content="Export" Click="OnExportClick" Classes="accent" />
@@ -69,7 +72,9 @@
                     <!-- Wires (behind nodes) -->
                     <ItemsControl ItemsSource="{Binding Connections}">
                         <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+                            <ItemsPanelTemplate>
+                                <Canvas />
+                            </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:ConnectionViewModel">
@@ -86,7 +91,9 @@
                     <!-- Nodes -->
                     <ItemsControl ItemsSource="{Binding Nodes}">
                         <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+                            <ItemsPanelTemplate>
+                                <Canvas />
+                            </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.Styles>
                             <Style Selector="ContentPresenter" x:DataType="vm:NodeViewModel">
@@ -132,7 +139,8 @@
                                                 <DataTemplate x:DataType="vm:ChoiceViewModel">
                                                     <Panel Height="40">
                                                         <!-- Each choice is its own block -->
-                                                        <Border Margin="8,5,14,5" Background="{StaticResource ControlBgBrush}"
+                                                        <Border Margin="8,5,14,5"
+                                                                Background="{StaticResource ControlBgBrush}"
                                                                 CornerRadius="6" Padding="6,0">
                                                             <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                                                                 <TextBox Grid.Column="0" Text="{Binding DisplayText}"
@@ -238,12 +246,15 @@
                                     <!-- Choices -->
                                     <ItemsControl ItemsSource="{Binding Current.Choices}" IsVisible="{Binding !IsEnd}">
                                         <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate><StackPanel Spacing="10" /></ItemsPanelTemplate>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Spacing="10" />
+                                            </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:ChoiceViewModel">
                                                 <Button Content="{Binding DisplayText}"
-                                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                        HorizontalAlignment="Stretch"
+                                                        HorizontalContentAlignment="Center"
                                                         Padding="14" FontSize="15"
                                                         IsEnabled="{Binding Target, Converter={x:Static ObjectConverters.IsNotNull}}"
                                                         Command="{Binding $parent[ItemsControl].((vm:PlayerViewModel)DataContext).ChooseCommand}"
