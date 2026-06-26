@@ -1,10 +1,10 @@
 using Tshin.Core.Models;
 
-namespace Tshin.Core.Utils;
+namespace Tshin.Core.Utils.Factories;
 
 /// <summary>
 /// Creates a new component of given type.
-/// Type must implement <see cref="IComponent"/> or <see cref="IComparableComponent"/> otherwise it will throw.
+/// Type must implement <see cref="IComponent"/> otherwise it will throw.
 /// </summary>
 public static class ComponentFactory
 {
@@ -14,7 +14,7 @@ public static class ComponentFactory
 
         if (!string.IsNullOrWhiteSpace(id))
         {
-            component.Id = id;
+            component.Name = id;
         }
 
         return component;

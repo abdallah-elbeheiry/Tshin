@@ -1,6 +1,7 @@
 ﻿using Tshin.Core.Models;
+using Tshin.Core.Utils.Managers;
 
-namespace Tshin.Core.Utils;
+namespace Tshin.Core.Utils.Factories;
 
 public class NodeFactory
 {
