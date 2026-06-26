@@ -1,6 +1,6 @@
 ﻿using Tshin.Core.Models;
 
-namespace Tshin.Core.Utils;
+namespace Tshin.Core.Utils.Managers;
 
 public static class NodeManager
 {

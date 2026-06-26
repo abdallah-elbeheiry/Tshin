@@ -1,11 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 using Tshin.Core.Models;
+using Tshin.Core.Utils.Factories;
+using Tshin.Core.Utils.Managers;
 
-namespace Tshin.Core.Utils;
+namespace Tshin.Core.Utils.Systems;
 
 public static class FileReader
 {

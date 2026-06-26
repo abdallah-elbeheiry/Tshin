@@ -1,9 +1,8 @@
-using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 using Tshin.Core.Models;
+using Tshin.Core.Utils.Managers;
 
-namespace Tshin.Core.Utils;
+namespace Tshin.Core.Utils.Systems;
 
 public static class FileWriter
 {
