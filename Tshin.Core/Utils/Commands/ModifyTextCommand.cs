@@ -19,22 +19,26 @@ public class ModifyTextCommand : ICommand
     /// Gets or sets the string value to be assigned to the target text component.
     /// </summary>
     public string Value { get; set; } = string.Empty;
+    // The specific execution behavior context (Increase, Reduce, or Set).
+
+    public CommandField Field { get; set; } = CommandField.Set;
+    
+    // The target entity whose component data will be altered.
+    public Entity Entity;
+
 
     /// <summary>
     /// Executes the assignment operation against the specified entity's text data component.
     /// </summary>
-    /// <param name="entity">The target entity whose component data will be altered.</param>
-    /// <param name="entityManager">The central manager handling component storage resolution.</param>
-    /// <param name="command">The execution behavior context. Must be <see cref="CommandField.Set"/>.</param>
     /// <exception cref="InvalidOperationException">Thrown when an operation other than <see cref="CommandField.Set"/> is requested.</exception>
-    public void Execute(Entity entity, EntityManager entityManager, CommandField command)
+    public void Execute()
     {
-        var textComp = entityManager.GetComponent<TextComponent>(entity, TargetComponentName);
+        var textComp = EntityManager.GetComponent<TextComponent>(Entity, TargetComponentName);
 
         if (textComp is null) return;
 
-        textComp.Value = command == CommandField.Set
+        textComp.Value = Field == CommandField.Set
             ? Value
-            : throw new InvalidOperationException($"Operation {command} is unsupported for text components.");
+            : throw new InvalidOperationException($"Operation {Field} is unsupported for text components.");
     }
 }

@@ -19,22 +19,26 @@ public class ModifyBooleanCommand : ICommand
     /// Gets or sets the target boolean truth value to be assigned to the component.
     /// </summary>
     public bool Value { get; set; }
+    // The specific execution behavior context (Increase, Reduce, or Set).
+
+    public CommandField Field { get; set; } = CommandField.Set;
+
+    // The target entity whose component data will be altered.
+    public Entity Entity;
+
 
     /// <summary>
     /// Executes the direct assignment operation against the specified entity's condition data component.
     /// </summary>
-    /// <param name="entity">The target entity whose component data will be altered.</param>
-    /// <param name="entityManager">The central manager handling component storage resolution.</param>
-    /// <param name="command">The execution behavior context. Must be <see cref="CommandField.Set"/>.</param>
     /// <exception cref="InvalidOperationException">Thrown when an operation other than <see cref="CommandField.Set"/> is requested.</exception>
-    public void Execute(Entity entity, EntityManager entityManager, CommandField command)
+    public void Execute()
     {
-        var boolComp = entityManager.GetComponent<ConditionComponent>(entity, TargetComponentName);
+        var boolComp = EntityManager.GetComponent<ConditionComponent>(Entity, TargetComponentName);
 
         if (boolComp is null) return;
 
-        boolComp.Value = command == CommandField.Set
+        boolComp.Value = Field == CommandField.Set
             ? Value
-            : throw new InvalidOperationException($"Unknown command field {command}");
+            : throw new InvalidOperationException($"Unknown command field {Field}");
     }
 }

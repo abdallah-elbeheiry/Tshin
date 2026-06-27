@@ -19,26 +19,29 @@ public class ModifyNumberCommand : ICommand
     /// Gets or sets the numerical value used as the modifier or direct assignment operand.
     /// </summary>
     public double Value { get; set; }
+    
+    // The target entity whose component data will be altered.
+    public Entity Entity;
+    
+    // The specific execution behavior context (Increase, Reduce, or Set).
+    public CommandField Field { get; set; } = CommandField.Set;
 
     /// <summary>
     /// Executes the bounded numerical operation against the specified entity's data component.
     /// </summary>
-    /// <param name="entity">The target entity whose component data will be altered.</param>
-    /// <param name="entityManager">The central manager handling component storage resolution.</param>
-    /// <param name="command">The specific execution behavior context (Increase, Reduce, or Set).</param>
     /// <exception cref="InvalidOperationException">Thrown when an unsupported or unknown <see cref="CommandField"/> value is passed.</exception>
-    public void Execute(Entity entity, EntityManager entityManager, CommandField command)
+    public void Execute()
     {
-        var numComp = entityManager.GetComponent<NumberComponent>(entity, TargetComponentName);
+        var numComp = EntityManager.GetComponent<NumberComponent>(Entity, TargetComponentName);
 
         if (numComp is null) return;
 
-        numComp.Value = command switch
+        numComp.Value = Field switch
         {
             CommandField.Increase => Math.Clamp(numComp.Value + Value, numComp.MinValue, numComp.MaxValue),
             CommandField.Reduce => Math.Clamp(numComp.Value - Value, numComp.MinValue, numComp.MaxValue),
             CommandField.Set => Math.Clamp(Value, numComp.MinValue, numComp.MaxValue),
-            _ => throw new InvalidOperationException($"Unknown command field {command}")
+            _ => throw new InvalidOperationException($"Unknown command field {Field}")
         };
     }
 }
