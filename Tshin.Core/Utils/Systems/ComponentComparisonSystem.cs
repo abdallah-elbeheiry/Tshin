@@ -28,4 +28,38 @@ public static class ComponentComparisonSystem
             _ => throw new InvalidOperationException($"Unknown operator {op}")
         };
     }
+    
+    /// <summary>
+    /// Compares the values of two <see cref="TextComponent"/> instances using a specified equality operator string.
+    /// </summary>
+    /// <param name="left">The primary text data component.</param>
+    /// <param name="right">The text data component to compare against.</param>
+    /// <param name="op">The comparison operator string. Supported values: "==", "!=".</param>
+    /// <returns><see langword="true"/> if the comparison evaluates to true; otherwise, <see langword="false"/>.</returns>
+    public static bool CompareText(TextComponent left, TextComponent right, string op)
+    {
+        return op switch
+        {
+            "==" => left.Value.Equals(right.Value),
+            "!=" => !left.Value.Equals(right.Value),
+            _ => throw new InvalidOperationException($"Unknown text operator {op}")
+        };
+    }
+
+    /// <summary>
+    /// Compares the values of two <see cref="ConditionComponent"/> instances using a specified equality operator string.
+    /// </summary>
+    /// <param name="left">The primary boolean data component.</param>
+    /// <param name="right">The boolean data component to compare against.</param>
+    /// <param name="op">The comparison operator string. Supported values: "==", "!=".</param>
+    /// <returns><see langword="true"/> if the comparison evaluates to true; otherwise, <see langword="false"/>.</returns>
+    public static bool CompareConditions(ConditionComponent left, ConditionComponent right, string op)
+    {
+        return op switch
+        {
+            "==" => left.Value == right.Value,
+            "!=" => left.Value != right.Value,
+            _ => throw new InvalidOperationException($"Unknown condition operator {op}")
+        };
+    }
 }
