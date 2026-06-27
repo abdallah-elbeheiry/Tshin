@@ -1,4 +1,5 @@
 ﻿using Tshin.Core.Models;
+using Tshin.Core.Utils.Commands;
 
 namespace Tshin.Core.Utils.Managers;
 
@@ -57,6 +58,7 @@ public static class NodeManager
     public static void RemoveChoice(IChoice choice, IBranchingNode node) => node.Choices.Remove(choice);
     public static void ClearChoices(IBranchingNode node) => node.Choices.Clear();
     public static List<IChoice> GetChoices(IBranchingNode node) => node.Choices;
+    public static IEnumerable<ICommand> GetChoiceCommands(IChoice choice) => choice.Commands;
     public static int GetChoiceCount(IBranchingNode node) => node.Choices.Count;
     public static IChoice GetChoice(IBranchingNode node, int index) => node.Choices[index];
     public static void ModifyChoiceText(IChoice choice, string text) => choice.DisplayText = text;
