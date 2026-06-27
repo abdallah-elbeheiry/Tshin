@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Tshin.Core.Models;
 
 namespace Tshin.Core.Utils.Managers;
@@ -5,15 +7,15 @@ namespace Tshin.Core.Utils.Managers;
 /// <summary>
 /// Manages lifecycle and component storage for entities within the Entity Component System (ECS).
 /// </summary>
-public class EntityManager
+public static class EntityManager
 {
-    private readonly Dictionary<Entity, Dictionary<string, IComponent>> _entityComponents = new();
+    private static readonly Dictionary<Entity, Dictionary<string, IComponent>> _entityComponents = new();
 
     /// <summary>
     /// Creates a new entity with an empty collection of components.
     /// </summary>
     /// <returns>A unique <see cref="Entity"/> instance.</returns>
-    public Entity CreateEntity()
+    public static Entity CreateEntity()
     {
         var entity = new Entity();
         _entityComponents[entity] = new Dictionary<string, IComponent>();
@@ -24,7 +26,7 @@ public class EntityManager
     /// Destroys the specified entity and removes all associated components from memory.
     /// </summary>
     /// <param name="entity">The entity to destroy.</param>
-    public void DestroyEntity(Entity entity)
+    public static void DestroyEntity(Entity entity)
     {
         _entityComponents.Remove(entity);
     }
@@ -36,7 +38,7 @@ public class EntityManager
     /// <param name="entity">The entity to attach the component to.</param>
     /// <param name="component">The pure data component to add or update.</param>
     /// <exception cref="ArgumentException">Thrown when the specified entity does not exist in the manager.</exception>
-    public void SetComponent(Entity entity, IComponent component)
+    public static void SetComponent(Entity entity, IComponent component)
     {
         if (!_entityComponents.TryGetValue(entity, out var components))
         {
@@ -53,7 +55,7 @@ public class EntityManager
     /// <param name="entity">The target entity.</param>
     /// <param name="componentName">The unique identifying name of the component.</param>
     /// <returns>The component cast to type <typeparamref name="T"/> if found and valid; otherwise, <see langword="null"/>.</returns>
-    public T? GetComponent<T>(Entity entity, string componentName) where T : class, IComponent
+    public static T? GetComponent<T>(Entity entity, string componentName) where T : class, IComponent
     {
         if (_entityComponents.TryGetValue(entity, out var components) && 
             components.TryGetValue(componentName, out var component))
@@ -62,6 +64,18 @@ public class EntityManager
         }
         return null;
     }
+    
+    /// <summary>
+    /// Retrieves all components currently assigned to a specific entity.
+    /// </summary>
+    /// <param name="entity">The target entity.</param>
+    /// <returns>An enumerable collection of <see cref="IComponent"/> instances associated with the entity.</returns>
+    public static IEnumerable<IComponent> GetComponentsForEntity(Entity entity)
+    {
+        return _entityComponents.TryGetValue(entity, out var components) 
+            ? components.Values 
+            : [];
+    }
 
     /// <summary>
     /// Removes a component from an entity by its name.
@@ -69,7 +83,7 @@ public class EntityManager
     /// <param name="entity">The target entity.</param>
     /// <param name="componentName">The unique identifying name of the component to remove.</param>
     /// <returns><see langword="true"/> if the component was successfully found and removed; otherwise, <see langword="false"/>.</returns>
-    public bool RemoveComponent(Entity entity, string componentName)
+    public static bool RemoveComponent(Entity entity, string componentName)
     {
         return _entityComponents.TryGetValue(entity, out var components) && components.Remove(componentName);
     }
@@ -80,7 +94,7 @@ public class EntityManager
     /// <param name="entity">The target entity.</param>
     /// <param name="componentName">The name of the component to look for.</param>
     /// <returns><see langword="true"/> if the component exists on the entity; otherwise, <see langword="false"/>.</returns>
-    public bool HasComponent(Entity entity, string componentName)
+    public static bool HasComponent(Entity entity, string componentName)
     {
         return _entityComponents.TryGetValue(entity, out var components) && 
                components.ContainsKey(componentName);
@@ -90,5 +104,10 @@ public class EntityManager
     /// Retrieves a collection of all registered entities currently tracked by the manager.
     /// </summary>
     /// <returns>An enumerable collection of all active <see cref="Entity"/> IDs.</returns>
-    public IEnumerable<Entity> GetAllEntities() => _entityComponents.Keys;
+    public static IEnumerable<Entity> GetAllEntities() => _entityComponents.Keys;
+
+    /// <summary>
+    /// Clears all tracked entities and their component collections from memory.
+    /// </summary>
+    public static void ClearEntities() => _entityComponents.Clear();
 }
