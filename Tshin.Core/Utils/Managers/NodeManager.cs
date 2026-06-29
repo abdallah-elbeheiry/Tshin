@@ -1,18 +1,17 @@
 ﻿using Tshin.Core.Models;
-using Tshin.Core.Utils.Commands;
 
 namespace Tshin.Core.Utils.Managers;
 
 public class NodeManager
 {
-    public readonly Dictionary<string, INode> Nodes = [];
+    public Dictionary<string, INode> Nodes { get; } = [];
 
     public void AppendNode(INode node)
     {
         Nodes.Add(node.Id, node);
     }
 
-    public INode GetNode(string id) => Nodes.TryGetValue(id, out var node) ? node : null!;
+    public INode? GetNode(string id) => Nodes.TryGetValue(id, out var node) ? node : null;
 
     public bool TryGetNode(string id, out INode? node) => Nodes.TryGetValue(id, out node);
 
