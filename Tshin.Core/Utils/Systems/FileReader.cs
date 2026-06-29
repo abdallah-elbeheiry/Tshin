@@ -11,9 +11,9 @@ namespace Tshin.Core.Utils.Systems;
 /// </summary>
 public static class FileReader
 {
-    public static async Task LoadFileAsync(string filePath, EntityManager entityManager)
+    public static async Task LoadFileAsync(string filePath, EntityManager entityManager, NodeManager nodeManager)
     {
-        NodeManager.ClearNodes();
+        nodeManager.ClearNodes();
         entityManager.ClearEntities(); // Reset global ECS state for clean loading context
 
         if (!File.Exists(filePath)) return;
@@ -50,10 +50,12 @@ public static class FileReader
                         currentEntityContext = ResolveEntity(id, entityCache, entityManager);
                         currentNode = null; // Clear narrative context while processing entities
                         break;
-                    case "StoryNode" when NodeManager.GetNodeIds().Contains(id):
+                    case "StoryNode" when nodeManager.GetNodeIds().Contains(id):
                         continue;
                     case "StoryNode":
-                        currentNode = NodeFactory.CreateNode(NodeType.StoryNode, id) as IBranchingNode;
+                        var newNode = NodeFactory.CreateNode(NodeType.StoryNode, id);
+                        nodeManager.AppendNode(newNode);
+                        currentNode = newNode as IBranchingNode;
                         currentEntityContext = null; // Clear entity context while processing narrative
                         lastCreatedChoice = null;
                         insideChoiceBlock = false;
@@ -93,7 +95,7 @@ public static class FileReader
             }
         }
 
-        LinkChoicePaths(temporaryChoicesMap);
+        LinkChoicePaths(temporaryChoicesMap, nodeManager);
     }
 
     #region Parsing Helpers
@@ -169,15 +171,24 @@ public static class FileReader
         var rightPart = line[(arrowIndex + 2)..];
 
         var choiceText = ExtractBetweenQuotes(leftPart).Replace("\\n", Environment.NewLine);
-        var targetNodeId = ExtractBetweenQuotes(rightPart);
 
+        // If the target is explicitly "null" (without quotes), create a choice with no destination.
+        if (rightPart.Trim() == "null")
+        {
+            var newChoice = new Choice(choiceText);
+            currentNode.Choices.Add(newChoice);
+            return newChoice;
+        }
+
+        var targetNodeId = ExtractBetweenQuotes(rightPart);
         if (string.IsNullOrEmpty(targetNodeId)) return null;
+
+        // Create choice with no target node — the target is linked later in LinkChoicePaths.
+        var newChoiceWithTarget = new Choice(choiceText);
+        currentNode.Choices.Add(newChoiceWithTarget);
+        temporaryChoicesMap.Add(new PendingChoiceLink(newChoiceWithTarget, targetNodeId));
         
-        var newChoice = new Choice(currentNode, choiceText);
-        NodeManager.AddChoice(newChoice, currentNode);
-        temporaryChoicesMap.Add(new PendingChoiceLink(newChoice, targetNodeId));
-        
-        return newChoice;
+        return newChoiceWithTarget;
     }
 
     private static bool ContainsActionVerb(string line, out string verb)
@@ -243,13 +254,13 @@ public static class FileReader
         }
     }
 
-    private static void LinkChoicePaths(List<PendingChoiceLink> temporaryChoicesMap)
+    private static void LinkChoicePaths(List<PendingChoiceLink> temporaryChoicesMap, NodeManager nodeManager)
     {
         foreach (var pendingLink in temporaryChoicesMap)
         {
-            if (NodeManager.TryGetNode(pendingLink.TargetId, out var targetNodeInstance))
+            if (nodeManager.TryGetNode(pendingLink.TargetId, out var targetNodeInstance))
             {
-                NodeManager.ModifyChoicePath(pendingLink.ChoiceItem, targetNodeInstance);
+                pendingLink.ChoiceItem.Node = targetNodeInstance;
             }
         }
     }
