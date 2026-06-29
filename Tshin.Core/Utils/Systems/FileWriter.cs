@@ -30,6 +30,10 @@ public static class FileWriter
         {
             await writer.WriteLineAsync($"[Entity: \"{entity.Id}\"]");
             
+            var xStr = entity.X.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var yStr = entity.Y.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            await writer.WriteLineAsync($"position: {xStr},{yStr}");
+            
             var components = entityManager.GetComponentsForEntity(entity); 
             foreach (var component in components)
             {
