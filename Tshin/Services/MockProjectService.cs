@@ -23,6 +23,7 @@ public sealed class MockProjectService : IProjectService
     private readonly Dictionary<string, ProjectSummary> _projects = new();
     private readonly Dictionary<string, StorySnapshot> _stories = new();
     private readonly EntityManager _entityManager = new();
+    private readonly NodeManager _nodeManager = new();
 
     public Task<IReadOnlyList<ProjectSummary>> GetProjectsAsync()
         => Task.FromResult<IReadOnlyList<ProjectSummary>>(
@@ -56,12 +57,12 @@ public sealed class MockProjectService : IProjectService
 
     public async Task<ProjectSummary> ImportProjectAsync(string filePath)
     {
-        await FileReader.LoadFileAsync(filePath, _entityManager);
+        await FileReader.LoadFileAsync(filePath, _entityManager, _nodeManager);
 
         var id = Guid.NewGuid().ToString("N");
         var name = Path.GetFileNameWithoutExtension(filePath);
         
-        var nodes = NodeManager.GetNodes().Select(n => new NodeSnapshot
+        var nodes = _nodeManager.GetNodes().Select(n => new NodeSnapshot
         {
             Id = n.Id,
             DisplayText = n.DisplayText,
@@ -102,26 +103,27 @@ public sealed class MockProjectService : IProjectService
             summary.FilePath = filePath;
         }
 
-        NodeManager.ClearNodes();
+        _nodeManager.ClearNodes();
         
         // Populate NodeManager from snapshot
         foreach (var ns in snapshot.Nodes)
         {
             var node = NodeFactory.CreateNode(NodeType.StoryNode, ns.Id, ns.X, ns.Y);
             node.DisplayText = ns.DisplayText;
+            _nodeManager.AppendNode(node);
         }
 
         // Link choices
         foreach (var ns in snapshot.Nodes)
         {
-            if (NodeManager.TryGetNode(ns.Id, out var node) && node is IBranchingNode branchingNode)
+            if (_nodeManager.TryGetNode(ns.Id, out var node) && node is IBranchingNode branchingNode)
             {
                 foreach (var cs in ns.Choices)
                 {
                     INode? target = null;
                     if (cs.TargetNodeId != null)
                     {
-                        NodeManager.TryGetNode(cs.TargetNodeId, out target);
+                        _nodeManager.TryGetNode(cs.TargetNodeId, out target);
                     }
                     var choice = new Choice(target, cs.DisplayText);
                     branchingNode.Choices.Add(choice);
@@ -129,7 +131,7 @@ public sealed class MockProjectService : IProjectService
             }
         }
 
-        await FileWriter.SaveFileAsync(filePath, _entityManager);
+        await FileWriter.SaveFileAsync(filePath, _entityManager, _nodeManager);
     }
 
     public async Task SaveProjectAsync(StorySnapshot snapshot)

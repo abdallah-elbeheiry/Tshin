@@ -1,5 +1,4 @@
 ﻿using Tshin.Core.Models;
-using Tshin.Core.Utils.Managers;
 
 namespace Tshin.Core.Utils.Factories;
 
@@ -10,9 +9,7 @@ public class NodeFactory
         switch (type)
         {
             case NodeType.StoryNode:
-                var node = new StoryNode(id ?? Guid.NewGuid().ToString(), NodeType.StoryNode, "", [], x, y);
-                NodeManager.AppendNode(node);
-                return node;
+                return new StoryNode(id ?? Guid.NewGuid().ToString(), NodeType.StoryNode, "", [], x, y);
             default:
                 throw new NotImplementedException("Node type not implemented: " + type);
         }

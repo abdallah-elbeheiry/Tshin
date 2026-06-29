@@ -12,12 +12,12 @@ namespace Tshin.Core.Utils.Systems;
 /// </summary>
 public static class FileWriter
 {
-    public static async Task SaveFileAsync(string filePath, EntityManager entityManager)
+    public static async Task SaveFileAsync(string filePath, EntityManager entityManager, NodeManager nodeManager)
     {
         await using var writer = new StreamWriter(filePath, false, Encoding.UTF8);
 
         await SerializeGlobalEntitiesAsync(writer, entityManager);
-        await SerializeStoryNodesAsync(writer);
+        await SerializeStoryNodesAsync(writer, nodeManager);
     }
 
     #region Entity Serialization
@@ -30,7 +30,6 @@ public static class FileWriter
         {
             await writer.WriteLineAsync($"[Entity: \"{entity.Id}\"]");
             
-            // Adjust this helper method call to match your exact EntityManager component iterator signature
             var components = entityManager.GetComponentsForEntity(entity); 
             foreach (var component in components)
             {
@@ -64,9 +63,9 @@ public static class FileWriter
 
     #region Story Node & Choice Serialization
 
-    private static async Task SerializeStoryNodesAsync(StreamWriter writer)
+    private static async Task SerializeStoryNodesAsync(StreamWriter writer, NodeManager nodeManager)
     {
-        var nodes = NodeManager.GetNodes();
+        var nodes = nodeManager.GetNodes();
 
         foreach (var node in nodes)
         {
@@ -81,22 +80,21 @@ public static class FileWriter
 
             if (node is IBranchingNode branchingNode)
             {
-                await SerializeChoicesAsync(writer, branchingNode);
+                await SerializeChoicesAsync(writer, branchingNode, nodeManager);
             }
 
             await writer.WriteLineAsync();
         }
     }
 
-    private static async Task SerializeChoicesAsync(StreamWriter writer, IBranchingNode branchingNode)
+    private static async Task SerializeChoicesAsync(StreamWriter writer, IBranchingNode branchingNode, NodeManager nodeManager)
     {
-        var choices = NodeManager.GetChoices(branchingNode);
+        var choices = nodeManager.GetChoices(branchingNode);
 
         foreach (var choice in choices)
         {
-            if (choice.Node == null) continue;
-
-            await writer.WriteLineAsync($"choice: \"{choice.DisplayText}\"->\"{choice.Node.Id}\"");
+            var targetPart = choice.Node is not null ? $"\"{choice.Node.Id}\"" : "null";
+            await writer.WriteLineAsync($"choice: \"{choice.DisplayText}\"->{targetPart}");
 
             var commands = choice.Commands.ToList();
             if (commands.Count > 0)

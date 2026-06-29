@@ -16,6 +16,7 @@ public class Choice(INode? node, string displayText, List<ICommand> commands)
 {
     /// <summary>
     /// Gets or sets the target destination node that this choice transitions the story to.
+    /// A value of <see langword="null"/> indicates an ending path or a terminal choice.
     /// </summary>
     public INode? Node { get; set; } = node;
 
@@ -30,7 +31,18 @@ public class Choice(INode? node, string displayText, List<ICommand> commands)
     public List<ICommand> Commands { get; set; } = commands;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Choice"/> class with a destination node and text, 
+    /// Initializes a new instance of the <see cref="Choice"/> class with display text only,
+    /// containing no target node or accompanying state mutations.
+    /// The <see cref="Node"/> property starts as <see langword="null"/> and should be set
+    /// explicitly after creation.
+    /// </summary>
+    /// <param name="displayText">The text displayed to the player.</param>
+    public Choice(string displayText) : this(null, displayText, [])
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Choice"/> class with a destination node and text,
     /// containing no accompanying state mutations.
     /// </summary>
     /// <param name="node">The target destination node.</param>
