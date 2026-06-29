@@ -67,7 +67,14 @@ public static class FileReader
             // 1. Process Global Entity Components Configuration
             if (currentEntityContext != null && currentNode == null)
             {
-                ParseAndRegisterComponent(line, currentEntityContext, entityManager);
+                if (line.StartsWith("position:"))
+                {
+                    ParsePosition(line, currentEntityContext);
+                }
+                else
+                {
+                    ParseAndRegisterComponent(line, currentEntityContext, entityManager);
+                }
                 continue;
             }
 
@@ -148,18 +155,38 @@ public static class FileReader
         }
     }
 
-    private static void ParsePosition(string line, IBranchingNode currentNode)
+    private static void ParsePosition(string line, IBranchingNode node)
+    {
+        var (x, y) = ParseCoordinates(line);
+        if (x.HasValue && y.HasValue)
+        {
+            node.X = x.Value;
+            node.Y = y.Value;
+        }
+    }
+
+    private static void ParsePosition(string line, Entity entity)
+    {
+        var (x, y) = ParseCoordinates(line);
+        if (x.HasValue && y.HasValue)
+        {
+            entity.X = x.Value;
+            entity.Y = y.Value;
+        }
+    }
+
+    private static (double? X, double? Y) ParseCoordinates(string line)
     {
         var coordinatesPart = line["position:".Length..].Trim();
         var coordinates = coordinatesPart.Split(',');
 
-        if (coordinates.Length != 2) return;
+        if (coordinates.Length != 2) return (null, null);
         if (double.TryParse(coordinates[0].Trim(), System.Globalization.CultureInfo.InvariantCulture, out var x) &&
             double.TryParse(coordinates[1].Trim(), System.Globalization.CultureInfo.InvariantCulture, out var y))
         {
-            currentNode.X = x;
-            currentNode.Y = y;
+            return (x, y);
         }
+        return (null, null);
     }
 
     private static Choice? ParseChoice(string line, IBranchingNode currentNode, List<PendingChoiceLink> temporaryChoicesMap)
