@@ -11,10 +11,10 @@ namespace Tshin.Core.Utils.Systems;
 /// </summary>
 public static class FileReader
 {
-    public static async Task LoadFileAsync(string filePath)
+    public static async Task LoadFileAsync(string filePath, EntityManager entityManager)
     {
         NodeManager.ClearNodes();
-        EntityManager.ClearEntities(); // Reset global ECS state for clean loading context
+        entityManager.ClearEntities(); // Reset global ECS state for clean loading context
 
         if (!File.Exists(filePath)) return;
 
@@ -47,7 +47,7 @@ public static class FileReader
                 switch (headerType)
                 {
                     case "Entity":
-                        currentEntityContext = ResolveEntity(id, entityCache);
+                        currentEntityContext = ResolveEntity(id, entityCache, entityManager);
                         currentNode = null; // Clear narrative context while processing entities
                         break;
                     case "StoryNode" when NodeManager.GetNodeIds().Contains(id):
@@ -63,9 +63,9 @@ public static class FileReader
             }
 
             // 1. Process Global Entity Components Configuration
-            if (currentEntityContext != null)
+            if (currentEntityContext != null && currentNode == null)
             {
-                ParseAndRegisterComponent(line, (Entity)currentEntityContext);
+                ParseAndRegisterComponent(line, currentEntityContext, entityManager);
                 continue;
             }
 
@@ -88,7 +88,7 @@ public static class FileReader
                 // 3. Process Action Commands inside localized bracket contexts (e.g., reduce:, set:, increase:)
                 else if (insideChoiceBlock && lastCreatedChoice != null && ContainsActionVerb(line, out var verbStr))
                 {
-                    ParseAndAddActionCommand(line, verbStr, lastCreatedChoice, entityCache);
+                    ParseAndAddActionCommand(line, verbStr, lastCreatedChoice, entityCache, entityManager);
                 }
             }
         }
@@ -109,16 +109,16 @@ public static class FileReader
         return (type, ExtractBetweenQuotes(rawId));
     }
 
-    private static Entity ResolveEntity(string entityId, Dictionary<string, Entity> entityCache)
+    private static Entity ResolveEntity(string entityId, Dictionary<string, Entity> entityCache, EntityManager entityManager)
     {
         if (entityCache.TryGetValue(entityId, out var targetEntity)) return targetEntity;
-        targetEntity = EntityManager.CreateEntity();
-        targetEntity.Id = Guid.TryParse(entityId, out var parsedGuid) ? parsedGuid : Guid.NewGuid();
+        var id = Guid.TryParse(entityId, out var parsedGuid) ? parsedGuid : Guid.NewGuid();
+        targetEntity = entityManager.CreateEntity(id);
         entityCache[entityId] = targetEntity;
         return targetEntity;
     }
 
-    private static void ParseAndRegisterComponent(string line, Entity entity)
+    private static void ParseAndRegisterComponent(string line, Entity entity, EntityManager entityManager)
     {
         var colonIndex = line.IndexOf(':');
         if (colonIndex == -1) return;
@@ -135,13 +135,13 @@ public static class FileReader
         switch (typeTag)
         {
             case "number" when double.TryParse(rawVal, System.Globalization.CultureInfo.InvariantCulture, out var n):
-                EntityManager.SetComponent(entity, new NumberComponent { Name = compName, Value = n });
+                entityManager.SetComponent(entity, new NumberComponent { Name = compName, Value = n });
                 break;
             case "text":
-                EntityManager.SetComponent(entity, new TextComponent { Name = compName, Value = rawVal });
+                entityManager.SetComponent(entity, new TextComponent { Name = compName, Value = rawVal });
                 break;
             case "boolean" when bool.TryParse(rawVal, out var b):
-                EntityManager.SetComponent(entity, new ConditionComponent { Name = compName, Value = b });
+                entityManager.SetComponent(entity, new ConditionComponent { Name = compName, Value = b });
                 break;
         }
     }
@@ -192,7 +192,7 @@ public static class FileReader
         return true;
     }
 
-    private static void ParseAndAddActionCommand(string line, string verbStr, Choice targetChoice, Dictionary<string, Entity> entityCache)
+    private static void ParseAndAddActionCommand(string line, string verbStr, Choice targetChoice, Dictionary<string, Entity> entityCache, EntityManager entityManager)
     {
         var body = line[(line.IndexOf(':') + 1)..].Trim();
         var args = ParseCommandArgs(body);
@@ -203,19 +203,17 @@ public static class FileReader
         var targetComponentName = args[1];
         var rawValue = args[2];
 
-        var targetEntity = ResolveEntity(entityId, entityCache);
+        var targetEntity = ResolveEntity(entityId, entityCache, entityManager);
 
         if (!Enum.TryParse<CommandField>(verbStr, true, out var commandFieldContext))
         {
             commandFieldContext = CommandField.Set;
         }
 
-        var currentCommandsList = (List<ICommand>)targetChoice.Commands;
-
         // Determine assignment destination based on value types
         if (double.TryParse(rawValue, System.Globalization.CultureInfo.InvariantCulture, out var numVal))
         {
-            currentCommandsList.Add(new ModifyNumberCommand 
+            targetChoice.Commands.Add(new ModifyNumberCommand 
             { 
                 Entity = targetEntity,
                 TargetComponentName = targetComponentName, 
@@ -225,7 +223,7 @@ public static class FileReader
         }
         else if (bool.TryParse(rawValue, out var boolVal))
         {
-            currentCommandsList.Add(new ModifyBooleanCommand 
+            targetChoice.Commands.Add(new ModifyBooleanCommand 
             { 
                 Entity = targetEntity,
                 TargetComponentName = targetComponentName, 
@@ -235,7 +233,7 @@ public static class FileReader
         }
         else
         {
-            currentCommandsList.Add(new ModifyTextCommand 
+            targetChoice.Commands.Add(new ModifyTextCommand 
             { 
                 Entity = targetEntity,
                 TargetComponentName = targetComponentName, 

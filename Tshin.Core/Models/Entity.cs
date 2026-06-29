@@ -7,13 +7,13 @@ namespace Tshin.Core.Models;
 /// an entity (and its components) are pure data, check <see cref="Utils.Managers.EntityManager"/> for implementation details.
 /// 1 entity can have multiple components, and a component can be attached to multiple entities
 /// </summary>
-public struct Entity() : IEquatable<Entity>
+public class Entity() : IEquatable<Entity>
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid Id { get; init; } = Guid.NewGuid();
 
     public bool Equals(Entity other) => Id.Equals(other.Id);
     public override bool Equals(object? obj) => obj is Entity other && Equals(other);
     public override int GetHashCode() => Id.GetHashCode();
-    public static bool operator ==(Entity left, Entity right) => left.Equals(right);
-    public static bool operator !=(Entity left, Entity right) => !left.Equals(right);
+    public static bool operator ==(Entity? left, Entity? right) => Equals(left, right);
+    public static bool operator !=(Entity? left, Entity? right) => !Equals(left, right);
 }

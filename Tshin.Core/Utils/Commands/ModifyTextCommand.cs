@@ -23,17 +23,19 @@ public class ModifyTextCommand : ICommand
 
     public CommandField Field { get; set; } = CommandField.Set;
     
-    // The target entity whose component data will be altered.
-    public Entity Entity;
+    /// <summary>
+    /// Gets or sets the target entity whose component data will be altered.
+    /// </summary>
+    public Entity Entity { get; set; } = null!;
 
 
     /// <summary>
     /// Executes the assignment operation against the specified entity's text data component.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when an operation other than <see cref="CommandField.Set"/> is requested.</exception>
-    public void Execute()
+    public void Execute(EntityManager entityManager)
     {
-        var textComp = EntityManager.GetComponent<TextComponent>(Entity, TargetComponentName);
+        var textComp = entityManager.GetComponent<TextComponent>(Entity, TargetComponentName);
 
         if (textComp is null) return;
 

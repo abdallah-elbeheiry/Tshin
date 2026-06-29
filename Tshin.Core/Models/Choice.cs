@@ -6,12 +6,12 @@ namespace Tshin.Core.Models;
 /// <summary>
 /// Represents a concrete narrative choice or branch within a story node.
 /// Each choice can optionally hold a sequence of commands to execute side-effects when selected.
-/// Commands should all be ran when the player selects this choice.
+/// Commands should all be run when the player selects this choice.
 /// </summary>
 /// <param name="node">The target destination node to navigate to when this choice is selected.</param>
 /// <param name="displayText">The localized or raw text displayed to the player for this choice.</param>
-/// <param name="commands">The sequence of mutations to run against game data when this choice is executed.</param>
-public class Choice(INode? node, string displayText, IEnumerable<ICommand> commands)
+/// <param name="commands">The collection of mutations to run against game data when this choice is executed.</param>
+public class Choice(INode? node, string displayText, List<ICommand> commands)
     : IChoice
 {
     /// <summary>
@@ -27,7 +27,7 @@ public class Choice(INode? node, string displayText, IEnumerable<ICommand> comma
     /// <summary>
     /// Gets or sets the collection of commands that execute sequentially when the player selects this path.
     /// </summary>
-    public IEnumerable<ICommand> Commands { get; set; } = commands;
+    public List<ICommand> Commands { get; set; } = commands;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Choice"/> class with a destination node and text, 

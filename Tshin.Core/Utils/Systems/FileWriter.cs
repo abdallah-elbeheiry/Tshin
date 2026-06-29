@@ -12,26 +12,26 @@ namespace Tshin.Core.Utils.Systems;
 /// </summary>
 public static class FileWriter
 {
-    public static async Task SaveFileAsync(string filePath)
+    public static async Task SaveFileAsync(string filePath, EntityManager entityManager)
     {
         await using var writer = new StreamWriter(filePath, false, Encoding.UTF8);
 
-        await SerializeGlobalEntitiesAsync(writer);
+        await SerializeGlobalEntitiesAsync(writer, entityManager);
         await SerializeStoryNodesAsync(writer);
     }
 
     #region Entity Serialization
 
-    private static async Task SerializeGlobalEntitiesAsync(StreamWriter writer)
+    private static async Task SerializeGlobalEntitiesAsync(StreamWriter writer, EntityManager entityManager)
     {
-        var entities = EntityManager.GetAllEntities();
+        var entities = entityManager.GetAllEntities();
 
         foreach (var entity in entities)
         {
             await writer.WriteLineAsync($"[Entity: \"{entity.Id}\"]");
             
             // Adjust this helper method call to match your exact EntityManager component iterator signature
-            var components = EntityManager.GetComponentsForEntity(entity); 
+            var components = entityManager.GetComponentsForEntity(entity); 
             foreach (var component in components)
             {
                 await SerializeComponentAsync(writer, component);
@@ -118,15 +118,15 @@ public static class FileWriter
             {
                 case ModifyNumberCommand numCmd:
                     var numVal = numCmd.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    await writer.WriteLineAsync($"  {verb}: {numCmd.Entity.Id}, \"{numCmd.TargetComponentName}\", {numVal}");
+                    await writer.WriteLineAsync($"  {verb}: \"{numCmd.Entity.Id}\", \"{numCmd.TargetComponentName}\", {numVal}");
                     break;
 
                 case ModifyTextCommand textCmd:
-                    await writer.WriteLineAsync($"  {verb}: {textCmd.Entity.Id}, \"{textCmd.TargetComponentName}\", \"{textCmd.Value}\"");
+                    await writer.WriteLineAsync($"  {verb}: \"{textCmd.Entity.Id}\", \"{textCmd.TargetComponentName}\", \"{textCmd.Value}\"");
                     break;
 
                 case ModifyBooleanCommand boolCmd:
-                    await writer.WriteLineAsync($"  {verb}: {boolCmd.Entity.Id}, \"{boolCmd.TargetComponentName}\", {boolCmd.Value.ToString().ToLower()}");
+                    await writer.WriteLineAsync($"  {verb}: \"{boolCmd.Entity.Id}\", \"{boolCmd.TargetComponentName}\", {boolCmd.Value.ToString().ToLower()}");
                     break;
             }
         }
