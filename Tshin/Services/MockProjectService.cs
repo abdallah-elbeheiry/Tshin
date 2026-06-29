@@ -22,6 +22,7 @@ public sealed class MockProjectService : IProjectService
 {
     private readonly Dictionary<string, ProjectSummary> _projects = new();
     private readonly Dictionary<string, StorySnapshot> _stories = new();
+    private readonly EntityManager _entityManager = new();
 
     public Task<IReadOnlyList<ProjectSummary>> GetProjectsAsync()
         => Task.FromResult<IReadOnlyList<ProjectSummary>>(
@@ -55,7 +56,7 @@ public sealed class MockProjectService : IProjectService
 
     public async Task<ProjectSummary> ImportProjectAsync(string filePath)
     {
-        await FileReader.LoadFileAsync(filePath);
+        await FileReader.LoadFileAsync(filePath, _entityManager);
 
         var id = Guid.NewGuid().ToString("N");
         var name = Path.GetFileNameWithoutExtension(filePath);
@@ -128,7 +129,7 @@ public sealed class MockProjectService : IProjectService
             }
         }
 
-        await FileWriter.SaveFileAsync(filePath);
+        await FileWriter.SaveFileAsync(filePath, _entityManager);
     }
 
     public async Task SaveProjectAsync(StorySnapshot snapshot)

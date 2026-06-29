@@ -21,8 +21,8 @@ public static class ComponentComparisonSystem
         {
             ">" => left.Value > right.Value,
             "<" => left.Value < right.Value,
-            "==" => left.Value.Equals(right.Value),
-            "!=" => !left.Value.Equals(right.Value),
+            "==" => left.Value == right.Value,
+            "!=" => left.Value != right.Value,
             ">=" => left.Value >= right.Value,
             "<=" => left.Value <= right.Value,
             _ => throw new InvalidOperationException($"Unknown operator {op}")

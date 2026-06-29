@@ -20,7 +20,7 @@ public interface IChoice
     string DisplayText { get; set; }
 
     /// <summary>
-    /// Gets or sets the sequence of side-effect mutations that must execute in order when the path is chosen.
+    /// Gets or sets the collection of side-effect mutations that must execute in order when the path is chosen.
     /// </summary>
-    IEnumerable<ICommand> Commands { get; set; }
+    List<ICommand> Commands { get; set; }
 }

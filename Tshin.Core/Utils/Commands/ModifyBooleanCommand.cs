@@ -23,17 +23,19 @@ public class ModifyBooleanCommand : ICommand
 
     public CommandField Field { get; set; } = CommandField.Set;
 
-    // The target entity whose component data will be altered.
-    public Entity Entity;
+    /// <summary>
+    /// Gets or sets the target entity whose component data will be altered.
+    /// </summary>
+    public Entity Entity { get; set; } = null!;
 
 
     /// <summary>
     /// Executes the direct assignment operation against the specified entity's condition data component.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when an operation other than <see cref="CommandField.Set"/> is requested.</exception>
-    public void Execute()
+    public void Execute(EntityManager entityManager)
     {
-        var boolComp = EntityManager.GetComponent<ConditionComponent>(Entity, TargetComponentName);
+        var boolComp = entityManager.GetComponent<ConditionComponent>(Entity, TargetComponentName);
 
         if (boolComp is null) return;
 
