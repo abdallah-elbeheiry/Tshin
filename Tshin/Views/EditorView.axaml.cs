@@ -15,13 +15,14 @@ namespace Tshin.Views;
 
 public partial class EditorView : UserControl
 {
-    private enum Mode { None, Pan, Node, Connect }
+    private enum Mode { None, Pan, Node, Connect, Entity }
 
     private Mode _mode;
     private Point _last;
     private NodeViewModel? _dragNode;
     private ChoiceViewModel? _connectChoice;
     private NodeViewModel? _connectOwner;
+    private EntityViewModel? _dragEntity;
     private int _connectIndex = -1;
 
     private EditorViewModel? _vm;
@@ -79,14 +80,14 @@ public partial class EditorView : UserControl
     private Point ToWorld(Point p)
         => Vm is { } vm ? new Point((p.X - vm.OffsetX) / vm.Zoom, (p.Y - vm.OffsetY) / vm.Zoom) : p;
 
-    // ---- viewport (pan / background / zoom) --------------------------------
+    // ---- viewport (pan / zoom / background) --------------------------------
 
     private void OnViewportPressed(object? sender, PointerPressedEventArgs e)
     {
         if (Vm is null) return;
         Focus();
         Vm.SelectNode(null);
-        
+
         var pos = e.GetPosition(Viewport);
         _lastRightClickPosition = pos;
 
@@ -105,6 +106,13 @@ public partial class EditorView : UserControl
         if (Vm is not { } vm) return;
         var world = ToWorld(_lastRightClickPosition);
         vm.CreateNodeAt(world.X - NodeLayout.Width / 2, world.Y);
+    }
+
+    private void OnCreateEntityClick(object? sender, RoutedEventArgs e)
+    {
+        if (Vm is not { } vm) return;
+        var world = ToWorld(_lastRightClickPosition);
+        vm.CreateEntityAt(world.X - 90, world.Y);
     }
 
     private async void OnExportClick(object? sender, RoutedEventArgs e)
@@ -155,6 +163,11 @@ public partial class EditorView : UserControl
                 _dragNode.Y += d.Y / vm.Zoom;
                 _last = pos;
                 break;
+            case Mode.Entity when _dragEntity is not null:
+                _dragEntity.X += d.X / vm.Zoom;
+                _dragEntity.Y += d.Y / vm.Zoom;
+                _last = pos;
+                break;
             case Mode.Connect:
                 UpdateTempWire(pos);
                 break;
@@ -170,15 +183,21 @@ public partial class EditorView : UserControl
             if (target is not null && target != _connectOwner)
                 vm.Connect(_connectChoice, target);
         }
-        else if (Vm is { } v && _mode == Mode.Node && _dragNode is not null)
+        else if (Vm is { } vmNode && _mode == Mode.Node && _dragNode is not null)
         {
-            _dragNode.X = v.Snap(_dragNode.X);
-            _dragNode.Y = v.Snap(_dragNode.Y);
+            _dragNode.X = vmNode.Snap(_dragNode.X);
+            _dragNode.Y = vmNode.Snap(_dragNode.Y);
+        }
+        else if (Vm is { } vmEntity && _mode == Mode.Entity && _dragEntity is not null)
+        {
+            _dragEntity.X = vmEntity.Snap(_dragEntity.X);
+            _dragEntity.Y = vmEntity.Snap(_dragEntity.Y);
         }
 
         TempWire.IsVisible = false;
         _mode = Mode.None;
         _dragNode = null;
+        _dragEntity = null;
         _connectChoice = null;
         _connectOwner = null;
         _connectIndex = -1;
@@ -199,7 +218,6 @@ public partial class EditorView : UserControl
         e.Handled = true;
     }
 
-
     // ---- node dragging ------------------------------------------------------
 
     private void OnNodeHeaderPressed(object? sender, PointerPressedEventArgs e)
@@ -212,6 +230,51 @@ public partial class EditorView : UserControl
             _last = e.GetPosition(Viewport);
             e.Pointer.Capture(Viewport);
             e.Handled = true;
+        }
+    }
+
+    // ---- entity dragging ----------------------------------------------------
+
+    private void OnEntityHeaderPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control { DataContext: EntityViewModel entity } && Vm is { } vm)
+        {
+            vm.SelectEntity(entity);
+            _mode = Mode.Entity;
+            _dragEntity = entity;
+            _last = e.GetPosition(Viewport);
+            e.Pointer.Capture(Viewport);
+            e.Handled = true;
+        }
+    }
+
+    private void OnComponentBadgePressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control { DataContext: ComponentViewModel component } && Vm is { } vm)
+        {
+            vm.SelectComponent(component);
+            e.Handled = true;
+        }
+    }
+
+    // ---- add component to entity -------------------------------------------
+
+    private void OnAddComponentClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: EntityViewModel entity } && Vm is { } vm)
+        {
+            var menu = new ContextMenu();
+            var numberItem = new MenuItem { Header = "Number" };
+            numberItem.Click += (_, _) => vm.AddComponentToEntity(entity, "number");
+            var textItem = new MenuItem { Header = "Text" };
+            textItem.Click += (_, _) => vm.AddComponentToEntity(entity, "text");
+            var conditionItem = new MenuItem { Header = "Condition" };
+            conditionItem.Click += (_, _) => vm.AddComponentToEntity(entity, "condition");
+            menu.Items.Add(numberItem);
+            menu.Items.Add(textItem);
+            menu.Items.Add(conditionItem);
+
+            menu.Open((Control)sender);
         }
     }
 
@@ -289,6 +352,15 @@ public partial class EditorView : UserControl
             minY = Math.Min(minY, n.Y);
             maxX = Math.Max(maxX, n.X + NodeLayout.Width);
             maxY = Math.Max(maxY, n.Y + h);
+        }
+
+        // Also include entities in the fit calculation
+        foreach (var e in vm.Entities)
+        {
+            minX = Math.Min(minX, e.X);
+            minY = Math.Min(minY, e.Y);
+            maxX = Math.Max(maxX, e.X + 180);
+            maxY = Math.Max(maxY, e.Y + 80);
         }
 
         const double margin = 60;

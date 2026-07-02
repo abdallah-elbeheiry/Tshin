@@ -11,26 +11,37 @@ using Tshin.Services;
 namespace Tshin.ViewModels;
 
 /// <summary>
-/// Right-pane Blueprints editor: owns the node graph, the wires between choices and
-/// nodes, and the canvas viewport (pan/zoom). Builds from a <see cref="StorySnapshot"/>
-/// and writes a fresh snapshot back on save.
+/// Right-pane Blueprints editor: owns the node graph, entities/components, the wires
+/// between choices and nodes, and the canvas viewport (pan/zoom). Builds from a
+/// <see cref="StorySnapshot"/> and writes a fresh snapshot back on save.
 /// </summary>
 public partial class EditorViewModel : ViewModelBase
 {
     private readonly IProjectService _projectService;
     private readonly string _projectId;
     private int _newNodeCounter;
+    private int _newEntityCounter;
 
     public string ProjectName { get; }
 
     public ObservableCollection<NodeViewModel> Nodes { get; } = new();
     public ObservableCollection<ConnectionViewModel> Connections { get; } = new();
+    public ObservableCollection<EntityViewModel> Entities { get; } = new();
 
     [ObservableProperty]
     private bool _isDirty;
 
     [ObservableProperty]
     private NodeViewModel? _selectedNode;
+
+    [ObservableProperty]
+    private ChoiceViewModel? _selectedChoice;
+
+    [ObservableProperty]
+    private EntityViewModel? _selectedEntity;
+
+    [ObservableProperty]
+    private ComponentViewModel? _selectedComponent;
 
     [ObservableProperty]
     private bool _snapToGrid;
@@ -63,15 +74,34 @@ public partial class EditorViewModel : ViewModelBase
         ProjectName = projectName;
         Nodes.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasNodes));
         BuildFrom(snapshot);
+
+        // When entities change, refresh AvailableEntities on all choices
+        Entities.CollectionChanged += (_, _) => RefreshAvailableEntitiesOnChoices();
     }
 
     /// <summary>Snaps a world coordinate to the grid when snapping is enabled.</summary>
     public double Snap(double value) => SnapToGrid ? Math.Round(value / GridSize) * GridSize : value;
 
+    internal void MarkDirty() => IsDirty = true;
+
     // ---- graph construction -------------------------------------------------
 
     private void BuildFrom(StorySnapshot snapshot)
     {
+        // --- Build entities ---
+        foreach (var es in snapshot.Entities)
+        {
+            var evm = new EntityViewModel(es.Id, es.Name, es.X, es.Y, MarkDirty);
+            foreach (var cs in es.Components)
+            {
+                var cvm = ComponentFromSnapshot(cs, MarkDirty);
+                if (cvm is not null)
+                    evm.Components.Add(cvm);
+            }
+            Entities.Add(evm);
+        }
+
+        // --- Build nodes ---
         var byId = new Dictionary<string, NodeViewModel>();
         foreach (var n in snapshot.Nodes)
         {
@@ -86,7 +116,16 @@ public partial class EditorViewModel : ViewModelBase
             foreach (var c in n.Choices)
             {
                 NodeViewModel? target = c.TargetNodeId is not null && byId.TryGetValue(c.TargetNodeId, out var t) ? t : null;
-                owner.Choices.Add(new ChoiceViewModel(c.DisplayText, target, MarkDirty));
+                var choiceVm = new ChoiceViewModel(c.DisplayText, target, MarkDirty);
+                choiceVm.AvailableEntities = Entities;
+                // Build commands from snapshot
+                foreach (var cmd in c.Commands)
+                {
+                    var cmdVm = CommandFromSnapshot(cmd, Entities, MarkDirty);
+                    if (cmdVm is not null)
+                        choiceVm.Commands.Add(cmdVm);
+                }
+                owner.Choices.Add(choiceVm);
             }
         }
 
@@ -94,95 +133,77 @@ public partial class EditorViewModel : ViewModelBase
         IsDirty = false;
     }
 
-    public void RebuildConnections()
+    private static ComponentViewModel? ComponentFromSnapshot(ComponentSnapshot cs, Action onChanged)
     {
-        foreach (var c in Connections) c.Dispose();
-        Connections.Clear();
+        return cs switch
+        {
+            NumberComponentSnapshot n => new NumberComponentViewModel(n.Name, n.Value, n.MinValue, n.MaxValue, onChanged),
+            TextComponentSnapshot t => new TextComponentViewModel(t.Name, t.Value, onChanged),
+            ConditionComponentSnapshot c => new ConditionComponentViewModel(c.Name, c.Value, onChanged),
+            _ => null
+        };
+    }
 
+    private static CommandViewModel? CommandFromSnapshot(CommandSnapshot cs, ObservableCollection<EntityViewModel> entities, Action onChanged)
+    {
+        var targetEntity = entities.FirstOrDefault(e => e.Id == cs.TargetEntityId);
+        return cs switch
+        {
+            ModifyNumberCommandSnapshot n => new CommandViewModel(
+                targetEntity, n.TargetComponentName, n.Field, n.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                n.Value, false, entities, onChanged),
+            ModifyTextCommandSnapshot t => new CommandViewModel(
+                targetEntity, t.TargetComponentName, "Set", t.Value,
+                0, false, entities, onChanged),
+            ModifyBooleanCommandSnapshot b => new CommandViewModel(
+                targetEntity, b.TargetComponentName, "Set", b.Value.ToString(),
+                0, b.Value, entities, onChanged),
+            _ => null
+        };
+    }
+
+    // ---- entity editing API -------------------------------------------------
+
+    public EntityViewModel CreateEntityAt(double worldX, double worldY)
+    {
+        var id = Guid.NewGuid().ToString("D");
+        var name = $"entity_{++_newEntityCounter}";
+        var evm = new EntityViewModel(id, name, worldX, worldY, MarkDirty);
+        Entities.Add(evm);
+        RefreshAvailableEntitiesOnChoices();
+        MarkDirty();
+        return evm;
+    }
+
+    public void AddComponentToEntity(EntityViewModel entity, string componentType)
+    {
+        ComponentViewModel comp = componentType switch
+        {
+            "number" => new NumberComponentViewModel("New Number", 0, 0, double.MaxValue, MarkDirty),
+            "text" => new TextComponentViewModel("New Text", "", MarkDirty),
+            "condition" => new ConditionComponentViewModel("New Condition", false, MarkDirty),
+            _ => throw new ArgumentException($"Unknown component type: {componentType}")
+        };
+        entity.Components.Add(comp);
+        MarkDirty();
+    }
+
+    public void RemoveComponentFromEntity(EntityViewModel entity, ComponentViewModel component)
+    {
+        entity.Components.Remove(component);
+        if (SelectedComponent == component) SelectedComponent = null;
+        MarkDirty();
+    }
+
+    private void RefreshAvailableEntitiesOnChoices()
+    {
         foreach (var node in Nodes)
         {
-            for (var i = 0; i < node.Choices.Count; i++)
+            foreach (var choice in node.Choices)
             {
-                var target = node.Choices[i].Target;
-                if (target is not null)
-                    Connections.Add(new ConnectionViewModel(node, target, i));
+                choice.AvailableEntities = Entities;
             }
         }
-    }
-
-    internal void MarkDirty() => IsDirty = true;
-
-    // ---- editing API (called from view + commands) --------------------------
-
-    public NodeViewModel CreateNodeAt(double worldX, double worldY)
-    {
-        var id = NextNodeId();
-        var node = new NodeViewModel(id, "New node", worldX, worldY, MarkDirty);
-        Nodes.Add(node);
-        SelectNode(node);
-        MarkDirty();
-        return node;
-    }
-
-    private string NextNodeId()
-    {
-        string id;
-        do { id = $"node_{++_newNodeCounter}"; }
-        while (Nodes.Any(n => n.Id == id));
-        return id;
-    }
-
-    public void SelectNode(NodeViewModel? node)
-    {
-        if (SelectedNode == node) return;
-        if (SelectedNode is not null) SelectedNode.IsSelected = false;
-        SelectedNode = node;
-        if (node is not null) node.IsSelected = true;
-    }
-
-    [RelayCommand]
-    private void RemoveNode(NodeViewModel? node)
-    {
-        node ??= SelectedNode;
-        if (node is null) return;
-
-        // Drop any choices pointing at the removed node.
-        foreach (var other in Nodes)
-            foreach (var choice in other.Choices.Where(c => c.Target == node).ToList())
-                choice.Target = null;
-
-        Nodes.Remove(node);
-        if (SelectedNode == node) SelectedNode = null;
-        RebuildConnections();
-        MarkDirty();
-    }
-
-    [RelayCommand]
-    private void AddChoice(NodeViewModel? node)
-    {
-        node ??= SelectedNode;
-        node?.AddChoice();
-        RebuildConnections();
-    }
-
-    [RelayCommand]
-    private void RemoveChoice(ChoiceViewModel? choice)
-    {
-        if (choice is null) return;
-        var owner = Nodes.FirstOrDefault(n => n.Choices.Contains(choice));
-        if (owner is null) return;
-        owner.Choices.Remove(choice);
-        RebuildConnections();
-        MarkDirty();
-    }
-
-    /// <summary>Links a choice to a target node (drag-to-connect or inspector).</summary>
-    public void Connect(ChoiceViewModel choice, NodeViewModel target)
-    {
-        if (choice.Target == target) return;
-        choice.Target = target;
-        RebuildConnections();
-        MarkDirty();
     }
 
     // ---- toolbar commands ---------------------------------------------------
@@ -210,8 +231,16 @@ public partial class EditorViewModel : ViewModelBase
     /// <summary>Raised so the view (which knows the viewport size) can frame all nodes.</summary>
     public event Action? RequestFit;
 
+    /// <summary>Raised when there is no project file yet and we need the file-picker.</summary>
+    public event Action? RequestExport;
+
     [RelayCommand]
-    private void Run() => Player = new PlayerViewModel(Nodes.FirstOrDefault());
+    private void Run()
+    {
+        var startNode = Nodes.FirstOrDefault();
+        if (startNode is null) return;
+        Player = new PlayerViewModel(startNode, Entities, MarkDirty);
+    }
 
     [RelayCommand]
     private void CloseRun() => Player = null;
@@ -224,8 +253,6 @@ public partial class EditorViewModel : ViewModelBase
         var path = await _projectService.GetProjectFilePathAsync(_projectId);
         if (string.IsNullOrEmpty(path))
         {
-            // If no path, we want the view to trigger Export.
-            // We can use an event or a callback.
             RequestExport?.Invoke();
             return;
         }
@@ -233,8 +260,6 @@ public partial class EditorViewModel : ViewModelBase
         await _projectService.SaveProjectAsync(BuildSnapshot());
         IsDirty = false;
     }
-
-    public event Action? RequestExport;
 
     [RelayCommand]
     private async Task Export(string filePath)
@@ -246,21 +271,78 @@ public partial class EditorViewModel : ViewModelBase
     private StorySnapshot BuildSnapshot()
     {
         var snapshot = new StorySnapshot { ProjectId = _projectId };
+
+        // Entities
+        foreach (var evm in Entities)
+        {
+            var es = new EntitySnapshot
+            {
+                Id = evm.Id,
+                Name = evm.Name,
+                X = evm.X,
+                Y = evm.Y,
+            };
+            foreach (var cvm in evm.Components)
+            {
+                ComponentSnapshot? cs = cvm switch
+                {
+                    NumberComponentViewModel n => new NumberComponentSnapshot(n.Name, n.Value, n.MinValue, n.MaxValue),
+                    TextComponentViewModel t => new TextComponentSnapshot(t.Name, t.Value),
+                    ConditionComponentViewModel c => new ConditionComponentSnapshot(c.Name, c.Value),
+                    _ => null
+                };
+                if (cs is not null)
+                    es.Components.Add(cs);
+            }
+            snapshot.Entities.Add(es);
+        }
+
+        // Nodes
         foreach (var node in Nodes)
         {
-            snapshot.Nodes.Add(new NodeSnapshot
+            var ns = new NodeSnapshot
             {
                 Id = node.Id,
                 DisplayText = node.DisplayText,
                 X = node.X,
                 Y = node.Y,
-                Choices = node.Choices.Select(c => new ChoiceSnapshot
+            };
+            foreach (var choice in node.Choices)
+            {
+                var cs = new ChoiceSnapshot
                 {
-                    DisplayText = c.DisplayText,
-                    TargetNodeId = c.Target?.Id,
-                }).ToList(),
-            });
+                    DisplayText = choice.DisplayText,
+                    TargetNodeId = choice.Target?.Id,
+                };
+                foreach (var cmdVm in choice.Commands)
+                {
+                    var cmd = BuildCommandSnapshot(cmdVm);
+                    if (cmd is not null)
+                        cs.Commands.Add(cmd);
+                }
+                ns.Choices.Add(cs);
+            }
+            snapshot.Nodes.Add(ns);
         }
+
         return snapshot;
+    }
+
+    private static CommandSnapshot? BuildCommandSnapshot(CommandViewModel cmdVm)
+    {
+        if (cmdVm.TargetEntity is null) return null;
+
+        var field = cmdVm.DisplayFieldValue;
+        var entityId = cmdVm.TargetEntity.Id;
+        var componentName = cmdVm.TargetComponentName;
+        if (string.IsNullOrEmpty(componentName)) return null;
+
+        return cmdVm.TargetComponentType switch
+        {
+            "number" => new ModifyNumberCommandSnapshot(entityId, componentName, field, cmdVm.NumberValue),
+            "text" => new ModifyTextCommandSnapshot(entityId, componentName, cmdVm.TextValue),
+            "condition" => new ModifyBooleanCommandSnapshot(entityId, componentName, cmdVm.BoolValue),
+            _ => null
+        };
     }
 }

@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using Tshin.Core.Models;
 using Tshin.Core.Utils.Commands;
@@ -7,7 +10,7 @@ using Tshin.Core.Utils.Managers;
 namespace Tshin.Core.Utils.Systems;
 
 /// <summary>
-/// Handles the deserialization of ECS entities, components, and narrative graphs from custom script files.
+/// Handles the robust deserialization of ECS entities, components, and narrative graphs from custom script files.
 /// </summary>
 public static class FileReader
 {
@@ -25,7 +28,16 @@ public static class FileReader
         IBranchingNode? currentNode = null;
         Choice? lastCreatedChoice = null;
         Entity? currentEntityContext = null;
+        
         var insideChoiceBlock = false;
+        var insideComponentBlock = false;
+
+        // Component block parsing state grouped
+        string? pendingComponentType = null;
+        string? pendingComponentName = null;
+        string? pendingComponentValue = null;
+        string? pendingComponentMin = null;
+        string? pendingComponentMax = null;
 
         foreach (var rawLine in lines)
         {
@@ -35,8 +47,30 @@ public static class FileReader
             if (string.IsNullOrEmpty(line)) continue;
 
             // Handle block markers
-            if (line == "{") { insideChoiceBlock = true; continue; }
-            if (line == "}") { insideChoiceBlock = false; lastCreatedChoice = null; continue; }
+            if (line == "{")
+            {
+                insideChoiceBlock = true;
+                if (currentEntityContext != null && pendingComponentType != null)
+                    insideComponentBlock = true;
+                continue;
+            }
+            if (line == "}")
+            {
+                // Finalize component if we were in a component block
+                if (insideComponentBlock && currentEntityContext != null && pendingComponentType != null)
+                {
+                    FinalizeComponent(pendingComponentType, pendingComponentName,
+                        pendingComponentValue, pendingComponentMin, pendingComponentMax,
+                        currentEntityContext, entityManager);
+                    
+                    pendingComponentType = pendingComponentName = pendingComponentValue = pendingComponentMin = pendingComponentMax = null;
+                }
+
+                insideChoiceBlock = false;
+                insideComponentBlock = false;
+                lastCreatedChoice = null;
+                continue;
+            }
 
             // Handle Header Identifiers ([Entity: "..."] or [StoryNode: "..."])
             if (line.StartsWith('[') && line.EndsWith(']'))
@@ -44,11 +78,17 @@ public static class FileReader
                 var (headerType, id) = ParseHeaderLine(line);
                 if (string.IsNullOrEmpty(id)) continue;
 
+                // Absolute State Reset: Clear all flags across contexts to handle missing braces gracefully
+                pendingComponentType = pendingComponentName = pendingComponentValue = pendingComponentMin = pendingComponentMax = null;
+                insideComponentBlock = false;
+                insideChoiceBlock = false;
+                lastCreatedChoice = null;
+
                 switch (headerType)
                 {
                     case "Entity":
                         currentEntityContext = ResolveEntity(id, entityCache, entityManager);
-                        currentNode = null; // Clear narrative context while processing entities
+                        currentNode = null; 
                         break;
                     case "StoryNode" when nodeManager.GetNodeIds().Contains(id):
                         continue;
@@ -56,45 +96,77 @@ public static class FileReader
                         var newNode = NodeFactory.CreateNode(NodeType.StoryNode, id);
                         nodeManager.AppendNode(newNode);
                         currentNode = newNode as IBranchingNode;
-                        currentEntityContext = null; // Clear entity context while processing narrative
-                        lastCreatedChoice = null;
-                        insideChoiceBlock = false;
+                        currentEntityContext = null; 
                         break;
                 }
                 continue;
             }
 
-            // 1. Process Global Entity Components Configuration
+            // Universal Colon Pre-Processing for fields
+            var colonIndex = line.IndexOf(':');
+            string key = string.Empty;
+            string valuePart = string.Empty;
+            
+            if (colonIndex != -1)
+            {
+                key = line[..colonIndex].Trim().ToLower();
+                valuePart = line[(colonIndex + 1)..].Trim();
+            }
+
+            // 1. Process Global Entity Configuration Context
             if (currentEntityContext != null && currentNode == null)
             {
-                if (line.StartsWith("position:"))
+                if (colonIndex != -1 && !insideComponentBlock)
                 {
-                    ParsePosition(line, currentEntityContext);
+                    if (key == "position")
+                    {
+                        ParsePositionFromValue(valuePart, currentEntityContext);
+                        continue;
+                    }
+                    if (key == "name")
+                    {
+                        var entityName = ExtractBetweenQuotes(valuePart);
+                        if (!string.IsNullOrEmpty(entityName)) currentEntityContext.Name = entityName;
+                        continue;
+                    }
+                }
+
+                if (insideComponentBlock)
+                {
+                    ParseComponentField(line, ref pendingComponentValue, ref pendingComponentMin, ref pendingComponentMax);
                 }
                 else
                 {
-                    ParseAndRegisterComponent(line, currentEntityContext, entityManager);
+                    BeginParseComponent(line, currentEntityContext,
+                        ref pendingComponentType, ref pendingComponentName, ref pendingComponentValue,
+                        ref pendingComponentMin, ref pendingComponentMax, entityManager);
                 }
                 continue;
             }
 
-            // 2. Process Narrative Topology Block
+            // 2. Process Narrative Topology Context
             if (currentNode != null)
             {
-                if (line.StartsWith("text:"))
+                if (colonIndex != -1 && !insideChoiceBlock)
                 {
-                    var textPart = line["text:".Length..].Trim();
-                    currentNode.DisplayText = ExtractBetweenQuotes(textPart).Replace("\\n", Environment.NewLine);
+                    if (key == "text")
+                    {
+                        currentNode.DisplayText = ExtractBetweenQuotes(valuePart);
+                        continue;
+                    }
+                    if (key == "position")
+                    {
+                        ParsePositionFromValue(valuePart, currentNode);
+                        continue;
+                    }
                 }
-                else if (line.StartsWith("position:"))
+
+                // Node choices can contain text arrows (choice: "Go" -> "node_1"), so handle via its key check
+                if (key == "choice")
                 {
-                    ParsePosition(line, currentNode);
+                    lastCreatedChoice = ParseChoiceFromValue(valuePart, currentNode, temporaryChoicesMap);
                 }
-                else if (line.StartsWith("choice:"))
-                {
-                    lastCreatedChoice = ParseChoice(line, currentNode, temporaryChoicesMap);
-                }
-                // 3. Process Action Commands inside localized bracket contexts (e.g., reduce:, set:, increase:)
+                // 3. Process Action Commands inside localized bracket contexts (set:, increase:, reduce:)
                 else if (insideChoiceBlock && lastCreatedChoice != null && ContainsActionVerb(line, out var verbStr))
                 {
                     ParseAndAddActionCommand(line, verbStr, lastCreatedChoice, entityCache, entityManager);
@@ -105,6 +177,105 @@ public static class FileReader
         LinkChoicePaths(temporaryChoicesMap, nodeManager);
     }
 
+    #region Component Parsing
+
+    private static void BeginParseComponent(string line, Entity entity,
+        ref string? pendingType, ref string? pendingName, ref string? pendingValue,
+        ref string? pendingMin, ref string? pendingMax, EntityManager entityManager)
+    {
+        var colonIndex = line.IndexOf(':');
+        if (colonIndex == -1) return;
+
+        var typeTag = line[..colonIndex].Trim().ToLower();
+        var rawArgs = line[(colonIndex + 1)..].Trim();
+
+        var name = ExtractBetweenQuotes(rawArgs);
+        if (string.IsNullOrEmpty(name))
+        {
+            // Fallback: try old inline format: "name", value
+            var args = ParseCommandArgs(rawArgs);
+            if (args.Count >= 2)
+            {
+                RegisterComponentInline(typeTag, args[0], args[1], null, null, entity, entityManager);
+            }
+            return;
+        }
+
+        // Store pending parameters for block capture
+        pendingType = typeTag;
+        pendingName = name;
+        pendingValue = pendingMin = pendingMax = null;
+
+        // Inline configuration verification
+        var nameEndIndex = rawArgs.IndexOf('"', 1);
+        if (nameEndIndex > 0)
+        {
+            var afterName = rawArgs[(nameEndIndex + 1)..].Trim();
+            if (afterName.StartsWith(','))
+            {
+                var args = ParseCommandArgs(rawArgs);
+                if (args.Count >= 2)
+                {
+                    RegisterComponentInline(typeTag, args[0], args[1], null, null, entity, entityManager);
+                    pendingType = pendingName = null;
+                }
+            }
+        }
+    }
+
+    private static void ParseComponentField(string line, ref string? value, ref string? min, ref string? max)
+    {
+        var colonIndex = line.IndexOf(':');
+        if (colonIndex == -1) return;
+
+        var key = line[..colonIndex].Trim().ToLower();
+        var rawVal = line[(colonIndex + 1)..].Trim();
+
+        switch (key)
+        {
+            case "value": value = rawVal; break;
+            case "min":   min = rawVal; break;
+            case "max":   max = rawVal; break;
+        }
+    }
+
+    private static void FinalizeComponent(string? typeTag, string? name, string? value, string? min, string? max, Entity entity, EntityManager entityManager)
+    {
+        if (string.IsNullOrEmpty(typeTag) || string.IsNullOrEmpty(name)) return;
+        RegisterComponentInline(typeTag, name, value, min, max, entity, entityManager);
+    }
+
+    private static void RegisterComponentInline(string typeTag, string name, string? rawValue, string? rawMin, string? rawMax, Entity entity, EntityManager entityManager)
+    {
+        switch (typeTag)
+        {
+            case "number":
+            {
+                double val = 0, minVal = 0, maxVal = double.MaxValue;
+                
+                if (rawValue != null) double.TryParse(rawValue, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out val);
+                if (rawMin != null)   double.TryParse(rawMin, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out minVal);
+                if (rawMax != null)   double.TryParse(rawMax, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out maxVal);
+
+                entityManager.SetComponent(entity, new NumberComponent { Name = name, Value = val, MinValue = minVal, MaxValue = maxVal });
+                break;
+            }
+            case "text":
+            {
+                entityManager.SetComponent(entity, new TextComponent { Name = name, Value = UnescapeValue(rawValue ?? string.Empty) });
+                break;
+            }
+            case "boolean":
+            {
+                bool.TryParse(rawValue, out var val);
+                entityManager.SetComponent(entity, new ConditionComponent { Name = name, Value = val });
+                break;
+            }
+        }
+    }
+
+    #endregion
+
     #region Parsing Helpers
 
     private static (string Type, string Id) ParseHeaderLine(string line)
@@ -113,9 +284,7 @@ public static class FileReader
         var splitIndex = headerContent.IndexOf(':');
         if (splitIndex == -1) return (string.Empty, string.Empty);
 
-        var type = headerContent[..splitIndex].Trim();
-        var rawId = headerContent[(splitIndex + 1)..].Trim();
-        return (type, ExtractBetweenQuotes(rawId));
+        return (headerContent[..splitIndex].Trim(), ExtractBetweenQuotes(headerContent[(splitIndex + 1)..].Trim()));
     }
 
     private static Entity ResolveEntity(string entityId, Dictionary<string, Entity> entityCache, EntityManager entityManager)
@@ -127,60 +296,23 @@ public static class FileReader
         return targetEntity;
     }
 
-    private static void ParseAndRegisterComponent(string line, Entity entity, EntityManager entityManager)
+    private static void ParsePositionFromValue(string valuePart, IBranchingNode node)
     {
-        var colonIndex = line.IndexOf(':');
-        if (colonIndex == -1) return;
-
-        var typeTag = line[..colonIndex].Trim();
-        var rawArgs = line[(colonIndex + 1)..].Trim();
-        var args = ParseCommandArgs(rawArgs);
-
-        if (args.Count < 2) return;
-
-        var compName = args[0];
-        var rawVal = args[1];
-
-        switch (typeTag)
-        {
-            case "number" when double.TryParse(rawVal, System.Globalization.CultureInfo.InvariantCulture, out var n):
-                entityManager.SetComponent(entity, new NumberComponent { Name = compName, Value = n });
-                break;
-            case "text":
-                entityManager.SetComponent(entity, new TextComponent { Name = compName, Value = rawVal });
-                break;
-            case "boolean" when bool.TryParse(rawVal, out var b):
-                entityManager.SetComponent(entity, new ConditionComponent { Name = compName, Value = b });
-                break;
-        }
+        var (x, y) = ParseCoordinates(valuePart);
+        if (x.HasValue && y.HasValue) { node.X = x.Value; node.Y = y.Value; }
     }
 
-    private static void ParsePosition(string line, IBranchingNode node)
+    private static void ParsePositionFromValue(string valuePart, Entity entity)
     {
-        var (x, y) = ParseCoordinates(line);
-        if (x.HasValue && y.HasValue)
-        {
-            node.X = x.Value;
-            node.Y = y.Value;
-        }
+        var (x, y) = ParseCoordinates(valuePart);
+        if (x.HasValue && y.HasValue) { entity.X = x.Value; entity.Y = y.Value; }
     }
 
-    private static void ParsePosition(string line, Entity entity)
+    private static (double? X, double? Y) ParseCoordinates(string valuePart)
     {
-        var (x, y) = ParseCoordinates(line);
-        if (x.HasValue && y.HasValue)
-        {
-            entity.X = x.Value;
-            entity.Y = y.Value;
-        }
-    }
-
-    private static (double? X, double? Y) ParseCoordinates(string line)
-    {
-        var coordinatesPart = line["position:".Length..].Trim();
-        var coordinates = coordinatesPart.Split(',');
-
+        var coordinates = valuePart.Split(',');
         if (coordinates.Length != 2) return (null, null);
+        
         if (double.TryParse(coordinates[0].Trim(), System.Globalization.CultureInfo.InvariantCulture, out var x) &&
             double.TryParse(coordinates[1].Trim(), System.Globalization.CultureInfo.InvariantCulture, out var y))
         {
@@ -189,18 +321,15 @@ public static class FileReader
         return (null, null);
     }
 
-    private static Choice? ParseChoice(string line, IBranchingNode currentNode, List<PendingChoiceLink> temporaryChoicesMap)
+    private static Choice? ParseChoiceFromValue(string valuePart, IBranchingNode currentNode, List<PendingChoiceLink> temporaryChoicesMap)
     {
-        var arrowIndex = line.IndexOf("->", StringComparison.Ordinal);
+        var arrowIndex = valuePart.IndexOf("->", StringComparison.Ordinal);
         if (arrowIndex == -1) return null;
 
-        var leftPart = line[..arrowIndex];
-        var rightPart = line[(arrowIndex + 2)..];
+        var choiceText = ExtractBetweenQuotes(valuePart[..arrowIndex]);
+        var rightPart = valuePart[(arrowIndex + 2)..].Trim();
 
-        var choiceText = ExtractBetweenQuotes(leftPart).Replace("\\n", Environment.NewLine);
-
-        // If the target is explicitly "null" (without quotes), create a choice with no destination.
-        if (rightPart.Trim() == "null")
+        if (rightPart == "null")
         {
             var newChoice = new Choice(choiceText);
             currentNode.Choices.Add(newChoice);
@@ -210,11 +339,9 @@ public static class FileReader
         var targetNodeId = ExtractBetweenQuotes(rightPart);
         if (string.IsNullOrEmpty(targetNodeId)) return null;
 
-        // Create choice with no target node — the target is linked later in LinkChoicePaths.
         var newChoiceWithTarget = new Choice(choiceText);
         currentNode.Choices.Add(newChoiceWithTarget);
         temporaryChoicesMap.Add(new PendingChoiceLink(newChoiceWithTarget, targetNodeId));
-        
         return newChoiceWithTarget;
     }
 
@@ -224,7 +351,7 @@ public static class FileReader
         var colonIndex = line.IndexOf(':');
         if (colonIndex == -1) return false;
 
-        var potentialVerb = line[..colonIndex].Trim();
+        var potentialVerb = line[..colonIndex].Trim().ToLower();
         if (potentialVerb is not ("set" or "increase" or "reduce")) return false;
         verb = potentialVerb;
         return true;
@@ -234,50 +361,25 @@ public static class FileReader
     {
         var body = line[(line.IndexOf(':') + 1)..].Trim();
         var args = ParseCommandArgs(body);
-
         if (args.Count < 3) return;
 
-        var entityId = args[0];
+        var targetEntity = ResolveEntity(args[0], entityCache, entityManager);
+        if (!Enum.TryParse<CommandField>(verbStr, true, out var commandFieldContext)) commandFieldContext = CommandField.Set;
+
         var targetComponentName = args[1];
         var rawValue = args[2];
 
-        var targetEntity = ResolveEntity(entityId, entityCache, entityManager);
-
-        if (!Enum.TryParse<CommandField>(verbStr, true, out var commandFieldContext))
-        {
-            commandFieldContext = CommandField.Set;
-        }
-
-        // Determine assignment destination based on value types
         if (double.TryParse(rawValue, System.Globalization.CultureInfo.InvariantCulture, out var numVal))
         {
-            targetChoice.Commands.Add(new ModifyNumberCommand 
-            { 
-                Entity = targetEntity,
-                TargetComponentName = targetComponentName, 
-                Value = numVal,
-                Field = commandFieldContext
-            });
+            targetChoice.Commands.Add(new ModifyNumberCommand { Entity = targetEntity, TargetComponentName = targetComponentName, Value = numVal, Field = commandFieldContext });
         }
         else if (bool.TryParse(rawValue, out var boolVal))
         {
-            targetChoice.Commands.Add(new ModifyBooleanCommand 
-            { 
-                Entity = targetEntity,
-                TargetComponentName = targetComponentName, 
-                Value = boolVal,
-                Field = commandFieldContext
-            });
+            targetChoice.Commands.Add(new ModifyBooleanCommand { Entity = targetEntity, TargetComponentName = targetComponentName, Value = boolVal, Field = commandFieldContext });
         }
         else
         {
-            targetChoice.Commands.Add(new ModifyTextCommand 
-            { 
-                Entity = targetEntity,
-                TargetComponentName = targetComponentName, 
-                Value = rawValue,
-                Field = commandFieldContext
-            });
+            targetChoice.Commands.Add(new ModifyTextCommand { Entity = targetEntity, TargetComponentName = targetComponentName, Value = UnescapeValue(rawValue), Field = commandFieldContext });
         }
     }
 
@@ -298,40 +400,83 @@ public static class FileReader
 
     private static string ExtractBetweenQuotes(string input)
     {
-        var firstQuote = input.IndexOf('"');
-        var lastQuote = input.LastIndexOf('"');
-
-        if (firstQuote != -1 && lastQuote != -1 && firstQuote < lastQuote)
+        var firstQuote = -1;
+        for (var i = 0; i < input.Length; i++)
         {
-            return input[(firstQuote + 1)..lastQuote];
+            if (input[i] == '"' && (i == 0 || input[i - 1] != '\\')) { firstQuote = i; break; }
         }
-        return string.Empty; 
+        if (firstQuote == -1) return UnescapeText(input.Trim());
+
+        var lastQuote = -1;
+        for (var i = input.Length - 1; i > firstQuote; i--)
+        {
+            if (input[i] == '"' && input[i - 1] != '\\') { lastQuote = i; break; }
+        }
+        if (lastQuote == -1) return UnescapeText(input.Trim());
+
+        return UnescapeText(input[(firstQuote + 1)..lastQuote]);
+    }
+
+    private static string UnescapeText(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+
+        var sb = new StringBuilder(value.Length);
+        for (var i = 0; i < value.Length; i++)
+        {
+            if (value[i] == '\\' && i + 1 < value.Length)
+            {
+                var next = value[i + 1];
+                switch (next)
+                {
+                    case '"':  sb.Append('"');  i++; break;
+                    case '\\': sb.Append('\\'); i++; break;
+                    case 'n':  sb.Append('\n'); i++; break;
+                    default:   sb.Append(value[i]); break;
+                }
+            }
+            else sb.Append(value[i]);
+        }
+        return sb.ToString();
     }
 
     private static List<string> ParseCommandArgs(string rawArgs)
     {
         var results = new List<string>();
         var currentToken = new StringBuilder();
-        bool insideQuotes = false;
+        var insideQuotes = false;
 
-        foreach (var c in rawArgs)
+        for (var i = 0; i < rawArgs.Length; i++)
         {
+            var c = rawArgs[i];
+            if (c == '"' && i > 0 && rawArgs[i - 1] == '\\')
+            {
+                currentToken.Append(c);
+                continue;
+            }
+
             switch (c)
             {
-                case '"':
-                    insideQuotes = !insideQuotes;
-                    continue;
+                case '"': insideQuotes = !insideQuotes; continue;
                 case ',' when !insideQuotes:
                     results.Add(currentToken.ToString().Trim());
                     currentToken.Clear();
                     continue;
-                default:
-                    currentToken.Append(c);
-                    break;
+                default: currentToken.Append(c); break;
             }
         }
         results.Add(currentToken.ToString().Trim());
         return results;
+    }
+
+    private static string UnescapeValue(string rawValue)
+    {
+        if (string.IsNullOrEmpty(rawValue)) return rawValue;
+        if (rawValue.Length >= 2 && rawValue[0] == '"' && rawValue[^1] == '"')
+        {
+            return ExtractBetweenQuotes(rawValue);
+        }
+        return UnescapeText(rawValue.Trim());
     }
 
     #endregion

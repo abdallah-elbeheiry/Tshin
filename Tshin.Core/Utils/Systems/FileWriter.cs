@@ -33,6 +33,7 @@ public static class FileWriter
             var xStr = entity.X.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var yStr = entity.Y.ToString(System.Globalization.CultureInfo.InvariantCulture);
             await writer.WriteLineAsync($"position: {xStr},{yStr}");
+            await writer.WriteLineAsync($"name: {entity.Name}");
             
             var components = entityManager.GetComponentsForEntity(entity); 
             foreach (var component in components)
@@ -49,16 +50,31 @@ public static class FileWriter
         switch (component)
         {
             case NumberComponent numComp:
+            {
                 var numVal = numComp.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                await writer.WriteLineAsync($"number: \"{numComp.Name}\", {numVal}");
+                var minVal = numComp.MinValue.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var maxVal = numComp.MaxValue.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                await writer.WriteLineAsync($"number: \"{numComp.Name}\"");
+                await writer.WriteLineAsync("{");
+                await writer.WriteLineAsync($"  value: {numVal}");
+                await writer.WriteLineAsync($"  min: {minVal}");
+                await writer.WriteLineAsync($"  max: {maxVal}");
+                await writer.WriteLineAsync("}");
                 break;
+            }
 
             case TextComponent textComp:
-                await writer.WriteLineAsync($"text: \"{textComp.Name}\", \"{textComp.Value}\"");
+                await writer.WriteLineAsync($"text: \"{textComp.Name}\"");
+                await writer.WriteLineAsync("{");
+                await writer.WriteLineAsync($"  value: \"{EscapeText(textComp.Value)}\"");
+                await writer.WriteLineAsync("}");
                 break;
 
             case ConditionComponent boolComp:
-                await writer.WriteLineAsync($"boolean: \"{boolComp.Name}\", {boolComp.Value.ToString().ToLower()}");
+                await writer.WriteLineAsync($"boolean: \"{boolComp.Name}\"");
+                await writer.WriteLineAsync("{");
+                await writer.WriteLineAsync($"  value: {boolComp.Value.ToString().ToLower()}");
+                await writer.WriteLineAsync("}");
                 break;
         }
     }
@@ -75,8 +91,8 @@ public static class FileWriter
         {
             await writer.WriteLineAsync($"[{node.NodeType}: \"{node.Id}\"]");
 
-            var escapedText = node.DisplayText.Replace("\r", "").Replace("\n", "\\n");
-            await writer.WriteLineAsync($"text: \"{escapedText}\"");
+            // Redundancy Fixed: Swapped custom chain with the existing EscapeText method
+            await writer.WriteLineAsync($"text: \"{EscapeText(node.DisplayText)}\"");
             
             var xStr = node.X.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var yStr = node.Y.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -98,7 +114,8 @@ public static class FileWriter
         foreach (var choice in choices)
         {
             var targetPart = choice.Node is not null ? $"\"{choice.Node.Id}\"" : "null";
-            await writer.WriteLineAsync($"choice: \"{choice.DisplayText}\"->{targetPart}");
+            var escapedDisplayText = EscapeText(choice.DisplayText);
+            await writer.WriteLineAsync($"choice: \"{escapedDisplayText}\"->{targetPart}");
 
             var commands = choice.Commands.ToList();
             if (commands.Count > 0)
@@ -124,7 +141,8 @@ public static class FileWriter
                     break;
 
                 case ModifyTextCommand textCmd:
-                    await writer.WriteLineAsync($"  {verb}: \"{textCmd.Entity.Id}\", \"{textCmd.TargetComponentName}\", \"{textCmd.Value}\"");
+                    var escapedValue = EscapeText(textCmd.Value);
+                    await writer.WriteLineAsync($"  {verb}: \"{textCmd.Entity.Id}\", \"{textCmd.TargetComponentName}\", \"{escapedValue}\"");
                     break;
 
                 case ModifyBooleanCommand boolCmd:
@@ -134,6 +152,24 @@ public static class FileWriter
         }
 
         await writer.WriteLineAsync("}");
+    }
+
+    #endregion
+
+    #region Escaping
+
+    /// <summary>
+    /// Escapes a string for safe embedding inside double-quotes.
+    /// </summary>
+    public static string EscapeText(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+
+        return value
+            .Replace("\r", "")
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\n", "\\n");
     }
 
     #endregion
