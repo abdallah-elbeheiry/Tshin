@@ -38,6 +38,7 @@ public static class FileReader
         string? pendingComponentValue = null;
         string? pendingComponentMin = null;
         string? pendingComponentMax = null;
+        string? pendingComponentVisible = null; // Added tracking variable
 
         foreach (var rawLine in lines)
         {
@@ -60,10 +61,10 @@ public static class FileReader
                 if (insideComponentBlock && currentEntityContext != null && pendingComponentType != null)
                 {
                     FinalizeComponent(pendingComponentType, pendingComponentName,
-                        pendingComponentValue, pendingComponentMin, pendingComponentMax,
+                        pendingComponentValue, pendingComponentMin, pendingComponentMax, pendingComponentVisible,
                         currentEntityContext, entityManager);
                     
-                    pendingComponentType = pendingComponentName = pendingComponentValue = pendingComponentMin = pendingComponentMax = null;
+                    pendingComponentType = pendingComponentName = pendingComponentValue = pendingComponentMin = pendingComponentMax = pendingComponentVisible = null;
                 }
 
                 insideChoiceBlock = false;
@@ -79,7 +80,7 @@ public static class FileReader
                 if (string.IsNullOrEmpty(id)) continue;
 
                 // Absolute State Reset: Clear all flags across contexts to handle missing braces gracefully
-                pendingComponentType = pendingComponentName = pendingComponentValue = pendingComponentMin = pendingComponentMax = null;
+                pendingComponentType = pendingComponentName = pendingComponentValue = pendingComponentMin = pendingComponentMax = pendingComponentVisible = null;
                 insideComponentBlock = false;
                 insideChoiceBlock = false;
                 lastCreatedChoice = null;
@@ -129,17 +130,22 @@ public static class FileReader
                         if (!string.IsNullOrEmpty(entityName)) currentEntityContext.Name = entityName;
                         continue;
                     }
+                    if (key == "visible") // Process Entity Visibility
+                    {
+                        if (bool.TryParse(valuePart, out var isVisible)) currentEntityContext.Visible = isVisible;
+                        continue;
+                    }
                 }
 
                 if (insideComponentBlock)
                 {
-                    ParseComponentField(line, ref pendingComponentValue, ref pendingComponentMin, ref pendingComponentMax);
+                    ParseComponentField(line, ref pendingComponentValue, ref pendingComponentMin, ref pendingComponentMax, ref pendingComponentVisible);
                 }
                 else
                 {
                     BeginParseComponent(line, currentEntityContext,
                         ref pendingComponentType, ref pendingComponentName, ref pendingComponentValue,
-                        ref pendingComponentMin, ref pendingComponentMax, entityManager);
+                        ref pendingComponentMin, ref pendingComponentMax, ref pendingComponentVisible, entityManager);
                 }
                 continue;
             }
@@ -161,7 +167,6 @@ public static class FileReader
                     }
                 }
 
-                // Node choices can contain text arrows (choice: "Go" -> "node_1"), so handle via its key check
                 if (key == "choice")
                 {
                     lastCreatedChoice = ParseChoiceFromValue(valuePart, currentNode, temporaryChoicesMap);
@@ -181,7 +186,7 @@ public static class FileReader
 
     private static void BeginParseComponent(string line, Entity entity,
         ref string? pendingType, ref string? pendingName, ref string? pendingValue,
-        ref string? pendingMin, ref string? pendingMax, EntityManager entityManager)
+        ref string? pendingMin, ref string? pendingMax, ref string? pendingVisible, EntityManager entityManager)
     {
         var colonIndex = line.IndexOf(':');
         if (colonIndex == -1) return;
@@ -196,7 +201,7 @@ public static class FileReader
             var args = ParseCommandArgs(rawArgs);
             if (args.Count >= 2)
             {
-                RegisterComponentInline(typeTag, args[0], args[1], null, null, entity, entityManager);
+                RegisterComponentInline(typeTag, args[0], args[1], null, null, null, entity, entityManager);
             }
             return;
         }
@@ -204,7 +209,7 @@ public static class FileReader
         // Store pending parameters for block capture
         pendingType = typeTag;
         pendingName = name;
-        pendingValue = pendingMin = pendingMax = null;
+        pendingValue = pendingMin = pendingMax = pendingVisible = null;
 
         // Inline configuration verification
         var nameEndIndex = rawArgs.IndexOf('"', 1);
@@ -216,14 +221,14 @@ public static class FileReader
                 var args = ParseCommandArgs(rawArgs);
                 if (args.Count >= 2)
                 {
-                    RegisterComponentInline(typeTag, args[0], args[1], null, null, entity, entityManager);
+                    RegisterComponentInline(typeTag, args[0], args[1], null, null, null, entity, entityManager);
                     pendingType = pendingName = null;
                 }
             }
         }
     }
 
-    private static void ParseComponentField(string line, ref string? value, ref string? min, ref string? max)
+    private static void ParseComponentField(string line, ref string? value, ref string? min, ref string? max, ref string? visible)
     {
         var colonIndex = line.IndexOf(':');
         if (colonIndex == -1) return;
@@ -233,20 +238,25 @@ public static class FileReader
 
         switch (key)
         {
-            case "value": value = rawVal; break;
-            case "min":   min = rawVal; break;
-            case "max":   max = rawVal; break;
+            case "value":   value = rawVal; break;
+            case "min":     min = rawVal; break;
+            case "max":     max = rawVal; break;
+            case "visible": visible = rawVal; break; // Process localized component visibility
         }
     }
 
-    private static void FinalizeComponent(string? typeTag, string? name, string? value, string? min, string? max, Entity entity, EntityManager entityManager)
+    private static void FinalizeComponent(string? typeTag, string? name, string? value, string? min, string? max, string? visible, Entity entity, EntityManager entityManager)
     {
         if (string.IsNullOrEmpty(typeTag) || string.IsNullOrEmpty(name)) return;
-        RegisterComponentInline(typeTag, name, value, min, max, entity, entityManager);
+        RegisterComponentInline(typeTag, name, value, min, max, visible, entity, entityManager);
     }
 
-    private static void RegisterComponentInline(string typeTag, string name, string? rawValue, string? rawMin, string? rawMax, Entity entity, EntityManager entityManager)
+    private static void RegisterComponentInline(string typeTag, string name, string? rawValue, string? rawMin, string? rawMax, string? rawVisible, Entity entity, EntityManager entityManager)
     {
+        // Default visibility context to true if field is missing or completely skipped
+        var isVisible = true;
+        if (rawVisible != null) bool.TryParse(rawVisible, out isVisible);
+
         switch (typeTag)
         {
             case "number":
@@ -257,18 +267,18 @@ public static class FileReader
                 if (rawMin != null)   double.TryParse(rawMin, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out minVal);
                 if (rawMax != null)   double.TryParse(rawMax, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out maxVal);
 
-                entityManager.SetComponent(entity, new NumberComponent { Name = name, Value = val, MinValue = minVal, MaxValue = maxVal });
+                entityManager.SetComponent(entity, new NumberComponent { Name = name, Value = val, MinValue = minVal, MaxValue = maxVal, Visible = isVisible });
                 break;
             }
             case "text":
             {
-                entityManager.SetComponent(entity, new TextComponent { Name = name, Value = UnescapeValue(rawValue ?? string.Empty) });
+                entityManager.SetComponent(entity, new TextComponent { Name = name, Value = UnescapeValue(rawValue ?? string.Empty), Visible = isVisible });
                 break;
             }
             case "boolean":
             {
                 bool.TryParse(rawValue, out var val);
-                entityManager.SetComponent(entity, new ConditionComponent { Name = name, Value = val });
+                entityManager.SetComponent(entity, new ConditionComponent { Name = name, Value = val, Visible = isVisible });
                 break;
             }
         }

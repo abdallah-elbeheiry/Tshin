@@ -33,7 +33,8 @@ public static class FileWriter
             var xStr = entity.X.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var yStr = entity.Y.ToString(System.Globalization.CultureInfo.InvariantCulture);
             await writer.WriteLineAsync($"position: {xStr},{yStr}");
-            await writer.WriteLineAsync($"name: {entity.Name}");
+            await writer.WriteLineAsync($"name: \"{EscapeText(entity.Name)}\""); // Escaped just in case they use quotes in the name
+            await writer.WriteLineAsync($"visible: {entity.Visible.ToString().ToLower()}");
             
             var components = entityManager.GetComponentsForEntity(entity); 
             foreach (var component in components)
@@ -47,6 +48,9 @@ public static class FileWriter
 
     private static async Task SerializeComponentAsync(StreamWriter writer, IComponent component)
     {
+        // Cache visibility string
+        var visibleStr = component.Visible.ToString().ToLower();
+
         switch (component)
         {
             case NumberComponent numComp:
@@ -59,6 +63,7 @@ public static class FileWriter
                 await writer.WriteLineAsync($"  value: {numVal}");
                 await writer.WriteLineAsync($"  min: {minVal}");
                 await writer.WriteLineAsync($"  max: {maxVal}");
+                await writer.WriteLineAsync($"  visible: {visibleStr}"); // Added Component Visibility
                 await writer.WriteLineAsync("}");
                 break;
             }
@@ -67,6 +72,7 @@ public static class FileWriter
                 await writer.WriteLineAsync($"text: \"{textComp.Name}\"");
                 await writer.WriteLineAsync("{");
                 await writer.WriteLineAsync($"  value: \"{EscapeText(textComp.Value)}\"");
+                await writer.WriteLineAsync($"  visible: {visibleStr}"); // Added Component Visibility
                 await writer.WriteLineAsync("}");
                 break;
 
@@ -74,6 +80,7 @@ public static class FileWriter
                 await writer.WriteLineAsync($"boolean: \"{boolComp.Name}\"");
                 await writer.WriteLineAsync("{");
                 await writer.WriteLineAsync($"  value: {boolComp.Value.ToString().ToLower()}");
+                await writer.WriteLineAsync($"  visible: {visibleStr}"); // Added Component Visibility
                 await writer.WriteLineAsync("}");
                 break;
         }
@@ -91,7 +98,6 @@ public static class FileWriter
         {
             await writer.WriteLineAsync($"[{node.NodeType}: \"{node.Id}\"]");
 
-            // Redundancy Fixed: Swapped custom chain with the existing EscapeText method
             await writer.WriteLineAsync($"text: \"{EscapeText(node.DisplayText)}\"");
             
             var xStr = node.X.ToString(System.Globalization.CultureInfo.InvariantCulture);

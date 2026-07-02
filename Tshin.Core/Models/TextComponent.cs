@@ -11,4 +11,6 @@ public class TextComponent : IComponent
 {
     public string Name { get; set; } = "New Text";
     public string Value { get; set; } = string.Empty;
+    public bool Visible { get; set; } = true;
+
 }

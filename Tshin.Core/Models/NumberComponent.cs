@@ -10,6 +10,7 @@ namespace Tshin.Core.Models;
 public class NumberComponent : IComponent
 {
     public string Name { get; set; } = "New Number";
+    public bool Visible { get; set; } = true;
 
     public double Value { get; set; }
     public double MinValue { get; set; } = 0;

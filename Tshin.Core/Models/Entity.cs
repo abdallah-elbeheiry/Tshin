@@ -13,6 +13,7 @@ public class Entity() : IEquatable<Entity>
     public double X { get; set; }
     public double Y { get; set; }
     public string Name { get; set; } = "New Entity";
+    public bool Visible { get; set; } = true;
 
     public bool Equals(Entity other) => Id.Equals(other.Id);
     public override bool Equals(object? obj) => obj is Entity other && Equals(other);
