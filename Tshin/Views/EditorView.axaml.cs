@@ -41,7 +41,7 @@ public partial class EditorView : UserControl
         {
             Width = 2,
             Height = 2,
-            Fill = new SolidColorBrush(Color.Parse("#2E2E33")),
+            Fill = new SolidColorBrush(Color.Parse("#3A3A3E")),
         };
         Canvas.SetLeft(dot, cell / 2);
         Canvas.SetTop(dot, cell / 2);
@@ -66,16 +66,28 @@ public partial class EditorView : UserControl
         {
             _vm.RequestFit -= FitToView;
             _vm.RequestExport -= OnRequestExport;
+            _vm.RequestPlay -= OnRequestPlay;
         }
         _vm = Vm;
         if (_vm is not null)
         {
             _vm.RequestFit += FitToView;
             _vm.RequestExport += OnRequestExport;
+            _vm.RequestPlay += OnRequestPlay;
         }
     }
 
     private void OnRequestExport() => OnExportClick(null, new RoutedEventArgs());
+
+    private void OnRequestPlay(PlayerViewModel player)
+    {
+        var window = new PlayerWindow { DataContext = player };
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is not null)
+            window.Show(owner);
+        else
+            window.Show();
+    }
 
     private Point ToWorld(Point p)
         => Vm is { } vm ? new Point((p.X - vm.OffsetX) / vm.Zoom, (p.Y - vm.OffsetY) / vm.Zoom) : p;
@@ -329,7 +341,18 @@ public partial class EditorView : UserControl
         base.OnKeyDown(e);
         if (e.Key is not (Key.Delete or Key.Back)) return;
         if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox) return;
-        if (Vm is { SelectedNode: not null } vm && vm.RemoveNodeCommand.CanExecute(null))
+        if (Vm is not { } vm) return;
+        if (vm.SelectedComponent is not null)
+        {
+            vm.RemoveComponentFromEntityCommand.Execute(vm.SelectedComponent);
+            e.Handled = true;
+        }
+        else if (vm.SelectedEntity is not null)
+        {
+            vm.RemoveEntityCommand.Execute(vm.SelectedEntity);
+            e.Handled = true;
+        }
+        else if (vm.SelectedNode is not null && vm.RemoveNodeCommand.CanExecute(null))
         {
             vm.RemoveNodeCommand.Execute(null);
             e.Handled = true;

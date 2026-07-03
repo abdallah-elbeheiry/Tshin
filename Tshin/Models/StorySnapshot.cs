@@ -44,11 +44,15 @@ public sealed class EntitySnapshot
     public string Name { get; set; } = string.Empty;
     public double X { get; set; }
     public double Y { get; set; }
+    public bool Visible { get; set; } = true;
     public List<ComponentSnapshot> Components { get; init; } = new();
 }
 
 /// <summary>Polymorphic base — mirrors <c>IComponent</c>.</summary>
-public abstract record ComponentSnapshot(string Name);
+public abstract record ComponentSnapshot(string Name)
+{
+    public bool Visible { get; set; } = true;
+}
 
 public sealed record NumberComponentSnapshot(string Name, double Value, double MinValue, double MaxValue)
     : ComponentSnapshot(Name);

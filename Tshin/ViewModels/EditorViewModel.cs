@@ -43,11 +43,25 @@ public partial class EditorViewModel : ViewModelBase
     [ObservableProperty]
     private ComponentViewModel? _selectedComponent;
 
-    [ObservableProperty]
-    private bool _snapToGrid;
+    /// <summary>
+    /// The single object the right-hand inspector should edit. A selected component wins
+    /// (with the entity kept as context for the breadcrumb), then choice, entity, node.
+    /// Drives one inspector host instead of four overlapping panels.
+    /// </summary>
+    public object? SelectedInspectorTarget
+        => (object?)SelectedComponent ?? SelectedChoice ?? (object?)SelectedEntity ?? SelectedNode;
+
+    partial void OnSelectedNodeChanged(NodeViewModel? value) => OnPropertyChanged(nameof(SelectedInspectorTarget));
+    partial void OnSelectedChoiceChanged(ChoiceViewModel? value) => OnPropertyChanged(nameof(SelectedInspectorTarget));
+    partial void OnSelectedEntityChanged(EntityViewModel? value) => OnPropertyChanged(nameof(SelectedInspectorTarget));
+    partial void OnSelectedComponentChanged(ComponentViewModel? value) => OnPropertyChanged(nameof(SelectedInspectorTarget));
+
+    /// <summary>Breadcrumb from the component inspector back up to its owning entity.</summary>
+    [RelayCommand]
+    private void BackToEntity() => SelectedComponent = null;
 
     [ObservableProperty]
-    private PlayerViewModel? _player;
+    private bool _snapToGrid;
 
     /// <summary>Grid cell used for snap-to-grid; matches the canvas dot spacing.</summary>
     public const double GridSize = 26;
@@ -91,7 +105,7 @@ public partial class EditorViewModel : ViewModelBase
         // --- Build entities ---
         foreach (var es in snapshot.Entities)
         {
-            var evm = new EntityViewModel(es.Id, es.Name, es.X, es.Y, MarkDirty);
+            var evm = new EntityViewModel(es.Id, es.Name, es.X, es.Y, MarkDirty) { Visible = es.Visible };
             foreach (var cs in es.Components)
             {
                 var cvm = ComponentFromSnapshot(cs, MarkDirty);
@@ -135,13 +149,15 @@ public partial class EditorViewModel : ViewModelBase
 
     private static ComponentViewModel? ComponentFromSnapshot(ComponentSnapshot cs, Action onChanged)
     {
-        return cs switch
+        ComponentViewModel? cvm = cs switch
         {
             NumberComponentSnapshot n => new NumberComponentViewModel(n.Name, n.Value, n.MinValue, n.MaxValue, onChanged),
             TextComponentSnapshot t => new TextComponentViewModel(t.Name, t.Value, onChanged),
             ConditionComponentSnapshot c => new ConditionComponentViewModel(c.Name, c.Value, onChanged),
             _ => null
         };
+        if (cvm is not null) cvm.Visible = cs.Visible;
+        return cvm;
     }
 
     private static CommandViewModel? CommandFromSnapshot(CommandSnapshot cs, ObservableCollection<EntityViewModel> entities, Action onChanged)
@@ -218,6 +234,14 @@ public partial class EditorViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void AddEntity()
+    {
+        var worldX = (-OffsetX + 300) / Zoom;
+        var worldY = (-OffsetY + 260) / Zoom;
+        CreateEntityAt(worldX, worldY);
+    }
+
+    [RelayCommand]
     private void ZoomIn() => SetZoom(Zoom * 1.2);
 
     [RelayCommand]
@@ -239,11 +263,12 @@ public partial class EditorViewModel : ViewModelBase
     {
         var startNode = Nodes.FirstOrDefault();
         if (startNode is null) return;
-        Player = new PlayerViewModel(startNode, Entities, MarkDirty);
+        var player = new PlayerViewModel(startNode, Entities, MarkDirty);
+        RequestPlay?.Invoke(player);
     }
 
-    [RelayCommand]
-    private void CloseRun() => Player = null;
+    /// <summary>Raised when play mode is requested; the view opens a PlayerWindow.</summary>
+    public event Action<PlayerViewModel>? RequestPlay;
 
     // ---- persistence --------------------------------------------------------
 
@@ -281,6 +306,7 @@ public partial class EditorViewModel : ViewModelBase
                 Name = evm.Name,
                 X = evm.X,
                 Y = evm.Y,
+                Visible = evm.Visible,
             };
             foreach (var cvm in evm.Components)
             {
@@ -292,7 +318,10 @@ public partial class EditorViewModel : ViewModelBase
                     _ => null
                 };
                 if (cs is not null)
+                {
+                    cs.Visible = cvm.Visible;
                     es.Components.Add(cs);
+                }
             }
             snapshot.Entities.Add(es);
         }

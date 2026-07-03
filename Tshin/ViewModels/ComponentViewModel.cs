@@ -13,6 +13,10 @@ public abstract partial class ComponentViewModel : ViewModelBase
     [ObservableProperty]
     private string _name;
 
+    /// <summary>Whether this component is shown at runtime; toggled from the editor.</summary>
+    [ObservableProperty]
+    private bool _visible = true;
+
     public abstract string ComponentType { get; }
 
     public ComponentViewModel(string name, Action onChanged)
@@ -22,6 +26,7 @@ public abstract partial class ComponentViewModel : ViewModelBase
     }
 
     partial void OnNameChanged(string value) => _onChanged();
+    partial void OnVisibleChanged(bool value) => _onChanged();
 }
 
 public sealed partial class NumberComponentViewModel : ComponentViewModel

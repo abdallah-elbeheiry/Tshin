@@ -100,6 +100,7 @@ public sealed class MockProjectService : IProjectService
                 Name = e.Name,
                 X = e.X,
                 Y = e.Y,
+                Visible = e.Visible,
             };
             foreach (var comp in _entityManager.GetComponentsForEntity(e))
             {
@@ -111,7 +112,10 @@ public sealed class MockProjectService : IProjectService
                     _ => null
                 };
                 if (cs is not null)
+                {
+                    cs.Visible = comp.Visible;
                     es.Components.Add(cs);
+                }
             }
             return es;
         }).ToList();
@@ -155,6 +159,7 @@ public sealed class MockProjectService : IProjectService
             entity.X = es.X;
             entity.Y = es.Y;
             entity.Name = es.Name;
+            entity.Visible = es.Visible;
             foreach (var cs in es.Components)
             {
                 switch (cs)
@@ -162,19 +167,19 @@ public sealed class MockProjectService : IProjectService
                     case NumberComponentSnapshot n:
                         _entityManager.SetComponent(entity, new NumberComponent
                         {
-                            Name = n.Name, Value = n.Value, MinValue = n.MinValue, MaxValue = n.MaxValue
+                            Name = n.Name, Value = n.Value, MinValue = n.MinValue, MaxValue = n.MaxValue, Visible = n.Visible
                         });
                         break;
                     case TextComponentSnapshot t:
                         _entityManager.SetComponent(entity, new TextComponent
                         {
-                            Name = t.Name, Value = t.Value
+                            Name = t.Name, Value = t.Value, Visible = t.Visible
                         });
                         break;
                     case ConditionComponentSnapshot c:
                         _entityManager.SetComponent(entity, new ConditionComponent
                         {
-                            Name = c.Name, Value = c.Value
+                            Name = c.Name, Value = c.Value, Visible = c.Visible
                         });
                         break;
                 }
@@ -273,6 +278,7 @@ public sealed class MockProjectService : IProjectService
             Name = e.Name,
             X = e.X,
             Y = e.Y,
+            Visible = e.Visible,
             Components = e.Components.Select(CloneComponent).ToList(),
         }).ToList(),
     };
@@ -285,13 +291,18 @@ public sealed class MockProjectService : IProjectService
         _ => cmd
     };
 
-    private static ComponentSnapshot CloneComponent(ComponentSnapshot comp) => comp switch
+    private static ComponentSnapshot CloneComponent(ComponentSnapshot comp)
     {
-        NumberComponentSnapshot n => new NumberComponentSnapshot(n.Name, n.Value, n.MinValue, n.MaxValue),
-        TextComponentSnapshot t => new TextComponentSnapshot(t.Name, t.Value),
-        ConditionComponentSnapshot c => new ConditionComponentSnapshot(c.Name, c.Value),
-        _ => comp
-    };
+        ComponentSnapshot clone = comp switch
+        {
+            NumberComponentSnapshot n => new NumberComponentSnapshot(n.Name, n.Value, n.MinValue, n.MaxValue),
+            TextComponentSnapshot t => new TextComponentSnapshot(t.Name, t.Value),
+            ConditionComponentSnapshot c => new ConditionComponentSnapshot(c.Name, c.Value),
+            _ => comp
+        };
+        clone.Visible = comp.Visible;
+        return clone;
+    }
 
     private static CommandSnapshot? CommandFromDomain(ICommand cmd)
     {

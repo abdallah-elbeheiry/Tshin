@@ -26,6 +26,10 @@ public partial class EntityViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isSelected;
 
+    /// <summary>Whether this entity is shown at runtime; toggled from the editor.</summary>
+    [ObservableProperty]
+    private bool _visible = true;
+
     public ObservableCollection<ComponentViewModel> Components { get; } = new();
 
     public EntityViewModel(string id, string name, double x, double y, Action onChanged)
@@ -41,4 +45,5 @@ public partial class EntityViewModel : ViewModelBase
     partial void OnXChanged(double value) => _onChanged();
     partial void OnYChanged(double value) => _onChanged();
     partial void OnIsSelectedChanged(bool value) => _onChanged();
+    partial void OnVisibleChanged(bool value) => _onChanged();
 }

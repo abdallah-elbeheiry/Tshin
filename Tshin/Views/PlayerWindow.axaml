@@ -1,0 +1,51 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Tshin.ViewModels"
+        x:Class="Tshin.Views.PlayerWindow"
+        x:DataType="vm:PlayerViewModel"
+        Title="Tshin — Play"
+        Width="600" Height="480"
+        MinWidth="400" MinHeight="320"
+        Background="{StaticResource WindowBgBrush}"
+        WindowStartupLocation="CenterOwner">
+
+    <Border Margin="24" Background="{StaticResource CardBgBrush}"
+            CornerRadius="14" Padding="28" BoxShadow="0 8 32 0 #60000000">
+        <DockPanel>
+            <!-- Story text -->
+            <TextBlock DockPanel.Dock="Top" Text="{Binding CurrentNode.DisplayText}"
+                       FontSize="20" TextWrapping="Wrap" TextAlignment="Center"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       Margin="0,0,0,24" />
+
+            <!-- End-of-branch -->
+            <StackPanel DockPanel.Dock="Bottom" IsVisible="{Binding IsEnd}" Spacing="14">
+                <TextBlock Text="The End" FontSize="14" FontStyle="Italic"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center" />
+                <Button Content="Restart" Classes="accent" HorizontalAlignment="Center"
+                        Command="{Binding RestartCommand}" />
+            </StackPanel>
+
+            <!-- Choices -->
+            <ItemsControl ItemsSource="{Binding CurrentNode.Choices}" IsVisible="{Binding !IsEnd}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Spacing="10" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ChoiceViewModel">
+                        <Button Content="{Binding DisplayText}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                Padding="14" FontSize="15"
+                                IsEnabled="{Binding IsValid}"
+                                Command="{Binding $parent[ItemsControl].((vm:PlayerViewModel)DataContext).ChooseCommand}"
+                                CommandParameter="{Binding}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </DockPanel>
+    </Border>
+</Window>
