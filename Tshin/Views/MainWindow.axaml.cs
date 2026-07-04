@@ -57,8 +57,21 @@ public partial class MainWindow : Window
             AllowMultiple = false,
             FileTypeFilter =
             [
-                new FilePickerFileType("Tshin Files") { Patterns = ["*.tshin"] },
-                new FilePickerFileType("All Files") { Patterns = ["*"] },
+                // .tshin has no registered macOS UTI, so a Patterns-only filter greys out
+                // every file in the macOS picker. Declaring generic UTIs (and MIME types)
+                // keeps the files selectable there while Patterns still filters on Windows.
+                new FilePickerFileType("Tshin Files")
+                {
+                    Patterns = ["*.tshin"],
+                    AppleUniformTypeIdentifiers = ["public.data", "public.plain-text"],
+                    MimeTypes = ["text/plain", "application/octet-stream"],
+                },
+                new FilePickerFileType("All Files")
+                {
+                    Patterns = ["*"],
+                    AppleUniformTypeIdentifiers = ["public.item"],
+                    MimeTypes = ["*/*"],
+                },
             ],
         });
 

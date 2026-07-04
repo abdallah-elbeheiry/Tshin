@@ -104,6 +104,15 @@ public partial class EditorViewModel
         MarkDirty();
     }
 
+    /// <summary>Unlinks a choice from its target node (drag its wire to empty canvas).</summary>
+    public void Disconnect(ChoiceViewModel choice)
+    {
+        if (choice.Target is null) return;
+        choice.Target = null;
+        RebuildConnections();
+        MarkDirty();
+    }
+
     public void RebuildConnections()
     {
         foreach (var c in Connections) c.Dispose();

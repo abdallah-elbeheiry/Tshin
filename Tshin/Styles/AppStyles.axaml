@@ -67,6 +67,7 @@
         <Setter Property="FontSize" Value="12" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="UseLayoutRounding" Value="True" />
     </Style>
     <Style Selector="Button.icon:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
@@ -142,6 +143,29 @@
     </Style>
     <Style Selector="TextBox:focus">
         <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+
+    <!-- Inline heading-style editable text (e.g. the epic title in the editor toolbar):
+         reads as plain text, hints on hover, subtle accent frame on focus, no focus ring. -->
+    <Style Selector="TextBox.title">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="6,2" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+    <Style Selector="TextBox.title /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox.title:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#14FFFFFF" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox.title:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#1FFFFFFF" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
     </Style>
 
     <!-- ============ Sidebar project list ============ -->

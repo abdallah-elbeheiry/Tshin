@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -99,9 +100,13 @@ public partial class CommandViewModel : ViewModelBase
         var idx = AvailableFields.IndexOf(field);
         _selectedFieldIndex = idx >= 0 ? idx : 0;
 
-        // If a target entity is already set, populate its components
+        // If a target entity is already set, populate its components and watch for
+        // later changes (components added/removed on the entity after selection).
         if (targetEntity is not null)
+        {
             PopulateAvailableComponents(targetEntity);
+            targetEntity.Components.CollectionChanged += OnEntityComponentsChanged;
+        }
 
         // Try to find and select the matching component by name
         if (targetEntity is not null && !string.IsNullOrEmpty(targetComponentName))
@@ -118,12 +123,30 @@ public partial class CommandViewModel : ViewModelBase
 
     // ── Reactions ─────────────────────────────────────────────────────────
 
-    partial void OnTargetEntityChanged(EntityViewModel? value)
+    partial void OnTargetEntityChanged(EntityViewModel? oldValue, EntityViewModel? newValue)
     {
-        PopulateAvailableComponents(value);
+        // Move the component-collection subscription from the old entity to the new one.
+        if (oldValue is not null)
+            oldValue.Components.CollectionChanged -= OnEntityComponentsChanged;
+        if (newValue is not null)
+            newValue.Components.CollectionChanged += OnEntityComponentsChanged;
+
+        PopulateAvailableComponents(newValue);
         SelectedComponent = null;
         TargetComponentType = "";
         _onChanged();
+    }
+
+    private void OnEntityComponentsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // Re-list the entity's components, preserving the current selection by name.
+        var previous = SelectedComponent;
+        PopulateAvailableComponents(TargetEntity);
+        if (previous is not null)
+        {
+            SelectedComponent = AvailableComponents.FirstOrDefault(c =>
+                c.Name.Equals(previous.Name, StringComparison.OrdinalIgnoreCase));
+        }
     }
 
     partial void OnSelectedComponentChanged(ComponentViewModel? value)

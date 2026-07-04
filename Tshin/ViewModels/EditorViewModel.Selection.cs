@@ -1,3 +1,4 @@
+using System.Linq;
 using CommunityToolkit.Mvvm.Input;
 
 namespace Tshin.ViewModels;
@@ -37,8 +38,16 @@ public partial class EditorViewModel
 
     public void SelectComponent(ComponentViewModel? component)
     {
+        // Anchor selection on the component's owning entity so the "Back to entity"
+        // breadcrumb returns there instead of whichever inspector was last open.
+        if (component is not null)
+        {
+            var owner = Entities.FirstOrDefault(e => e.Components.Contains(component));
+            if (owner is not null) SelectedEntity = owner;
+        }
+        SelectedChoice = null;
+        SelectedNode = null;
         SelectedComponent = component;
-        // Keep selected entity as context
     }
 
     [RelayCommand]

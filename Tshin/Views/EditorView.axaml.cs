@@ -27,34 +27,60 @@ public partial class EditorView : UserControl
 
     private EditorViewModel? _vm;
 
+    private const double GridCell = 26;
+    private static readonly Color GridDotColor = Color.Parse("#3A3A3E");
+    private static readonly Color CanvasBgColor = Color.Parse("#161618"); // matches CanvasBgBrush
+
     public EditorView()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
-        World.Background = CreateGridBrush();
+        UpdateGridBackground();
     }
 
-    private static VisualBrush CreateGridBrush()
+    /// <summary>
+    /// Paints the dot grid on the viewport in screen space, following the current
+    /// pan/zoom. Because the tile is re-projected from the world transform, the grid
+    /// covers the whole viewport at any offset — an effectively infinite canvas.
+    /// </summary>
+    private void UpdateGridBackground()
     {
-        const double cell = 26;
+        double zoom = Vm?.Zoom ?? 1;
+        double offsetX = Vm?.OffsetX ?? 0;
+        double offsetY = Vm?.OffsetY ?? 0;
+
+        var screenCell = GridCell * zoom;
+        if (screenCell <= 0) return;
+
+        // Normalise the pan offset into a single-cell phase so the grid scrolls smoothly.
+        var phaseX = ((offsetX % screenCell) + screenCell) % screenCell;
+        var phaseY = ((offsetY % screenCell) + screenCell) % screenCell;
+
         var dot = new Ellipse
         {
             Width = 2,
             Height = 2,
-            Fill = new SolidColorBrush(Color.Parse("#3A3A3E")),
+            Fill = new SolidColorBrush(GridDotColor),
         };
-        Canvas.SetLeft(dot, cell / 2);
-        Canvas.SetTop(dot, cell / 2);
+        Canvas.SetLeft(dot, screenCell / 2);
+        Canvas.SetTop(dot, screenCell / 2);
 
-        var tile = new Canvas { Width = cell, Height = cell, Children = { dot } };
+        // Opaque tile (canvas colour + dot) so the brush fully paints the viewport.
+        var tile = new Canvas
+        {
+            Width = screenCell,
+            Height = screenCell,
+            Background = new SolidColorBrush(CanvasBgColor),
+            Children = { dot },
+        };
 
-        return new VisualBrush
+        Viewport.Background = new VisualBrush
         {
             Visual = tile,
             TileMode = TileMode.Tile,
             Stretch = Stretch.None,
-            SourceRect = new RelativeRect(0, 0, cell, cell, RelativeUnit.Absolute),
-            DestinationRect = new RelativeRect(0, 0, cell, cell, RelativeUnit.Absolute),
+            SourceRect = new RelativeRect(0, 0, screenCell, screenCell, RelativeUnit.Absolute),
+            DestinationRect = new RelativeRect(phaseX, phaseY, screenCell, screenCell, RelativeUnit.Absolute),
         };
     }
 
@@ -67,6 +93,7 @@ public partial class EditorView : UserControl
             _vm.RequestFit -= FitToView;
             _vm.RequestExport -= OnRequestExport;
             _vm.RequestPlay -= OnRequestPlay;
+            _vm.PropertyChanged -= OnVmPropertyChanged;
         }
         _vm = Vm;
         if (_vm is not null)
@@ -74,6 +101,19 @@ public partial class EditorView : UserControl
             _vm.RequestFit += FitToView;
             _vm.RequestExport += OnRequestExport;
             _vm.RequestPlay += OnRequestPlay;
+            _vm.PropertyChanged += OnVmPropertyChanged;
+        }
+        UpdateGridBackground();
+    }
+
+    private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        // Keep the grid aligned when zoom/offset change via toolbar buttons or code.
+        if (e.PropertyName is nameof(EditorViewModel.Zoom)
+            or nameof(EditorViewModel.OffsetX)
+            or nameof(EditorViewModel.OffsetY))
+        {
+            UpdateGridBackground();
         }
     }
 
@@ -194,6 +234,8 @@ public partial class EditorView : UserControl
             var target = NodeAt(world, vm);
             if (target is not null && target != _connectOwner)
                 vm.Connect(_connectChoice, target);
+            else if (target is null)
+                vm.Disconnect(_connectChoice); // dropped on empty canvas → unlink
         }
         else if (Vm is { } vmNode && _mode == Mode.Node && _dragNode is not null)
         {

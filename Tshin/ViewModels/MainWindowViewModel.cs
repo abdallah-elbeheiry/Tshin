@@ -78,7 +78,20 @@ public partial class MainWindowViewModel : ViewModelBase
         CurrentEditor = new EditorViewModel(snapshot, value.Name, _projectService);
     }
 
-    partial void OnCurrentEditorChanged(EditorViewModel? value) => OnPropertyChanged(nameof(HasEditor));
+    partial void OnCurrentEditorChanged(EditorViewModel? oldValue, EditorViewModel? newValue)
+    {
+        if (oldValue is not null) oldValue.PropertyChanged -= OnEditorPropertyChanged;
+        if (newValue is not null) newValue.PropertyChanged += OnEditorPropertyChanged;
+        OnPropertyChanged(nameof(HasEditor));
+    }
+
+    /// <summary>Propagate an epic rename from the editor toolbar back to the sidebar summary.</summary>
+    private void OnEditorPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(EditorViewModel.ProjectName)) return;
+        if (CurrentEditor is null || SelectedProject is null) return;
+        SelectedProject.Name = CurrentEditor.ProjectName;
+    }
 
     [RelayCommand]
     private async Task NewProject()

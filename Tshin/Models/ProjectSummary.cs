@@ -1,4 +1,5 @@
 using System;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Tshin.Models;
 
@@ -7,10 +8,14 @@ namespace Tshin.Models;
 /// The real persistence layer (owned by another dev) will produce these;
 /// for the ui-rework branch they come from <see cref="Tshin.Services.MockProjectService"/>.
 /// </summary>
-public sealed class ProjectSummary
+public sealed partial class ProjectSummary : ObservableObject
 {
     public required string Id { get; init; }
-    public required string Name { get; init; }
+
+    /// <summary>Editable epic title. Observable so the sidebar reflects renames live.</summary>
+    [ObservableProperty]
+    private string _name = "";
+
     public string? Description { get; init; }
     public int NodeCount { get; init; }
     public DateTimeOffset LastModified { get; init; }

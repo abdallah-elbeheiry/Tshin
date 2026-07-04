@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -38,7 +39,7 @@ public partial class PlayerViewModel : ViewModelBase
         {
             foreach (var e in liveEntities)
             {
-                var clone = new EntityViewModel(e.Id, e.Name, e.X, e.Y, onChanged);
+                var clone = new EntityViewModel(e.Id, e.Name, e.X, e.Y, onChanged) { Visible = e.Visible };
                 foreach (var c in e.Components)
                 {
                     var compClone = CloneComponent(c, onChanged);
@@ -73,29 +74,49 @@ public partial class PlayerViewModel : ViewModelBase
     {
         return c switch
         {
-            NumberComponentViewModel n => new NumberComponentViewModel(n.Name, n.Value, n.MinValue, n.MaxValue, onChanged),
-            TextComponentViewModel t => new TextComponentViewModel(t.Name, t.Value, onChanged),
-            ConditionComponentViewModel cnd => new ConditionComponentViewModel(cnd.Name, cnd.Value, onChanged),
+            NumberComponentViewModel n => new NumberComponentViewModel(n.Name, n.Value, n.MinValue, n.MaxValue, onChanged) { Visible = n.Visible },
+            TextComponentViewModel t => new TextComponentViewModel(t.Name, t.Value, onChanged) { Visible = t.Visible },
+            ConditionComponentViewModel cnd => new ConditionComponentViewModel(cnd.Name, cnd.Value, onChanged) { Visible = cnd.Visible },
             _ => null
         };
     }
 
     public bool IsEnd => CurrentNode is null || CurrentNode.Choices.Count == 0;
 
+    // ── Entities panel ────────────────────────────────────────────────────
+
+    /// <summary>Entities flagged Visible, shown in the player's collapsible panel.</summary>
+    public IEnumerable<EntityViewModel> VisiblePlayEntities => PlayEntities.Where(e => e.Visible);
+
+    /// <summary>Whether there is anything to show in the entities panel at all.</summary>
+    public bool HasVisibleEntities => PlayEntities.Any(e => e.Visible);
+
+    [ObservableProperty]
+    private bool _isEntitiesPanelExpanded = true;
+
+    public string EntitiesToggleGlyph => IsEntitiesPanelExpanded ? "▾" : "▸";
+
+    partial void OnIsEntitiesPanelExpandedChanged(bool value)
+        => OnPropertyChanged(nameof(EntitiesToggleGlyph));
+
+    [RelayCommand]
+    private void ToggleEntitiesPanel() => IsEntitiesPanelExpanded = !IsEntitiesPanelExpanded;
+
     partial void OnCurrentNodeChanged(NodeViewModel? value) => OnPropertyChanged(nameof(IsEnd));
 
     [RelayCommand]
     private void Choose(ChoiceViewModel? choice)
     {
-        if (choice?.Target is { } target)
-        {
-            // Execute commands on play entities before transitioning
-            foreach (var cmd in choice.Commands)
-            {
-                ExecuteCommand(cmd);
-            }
+        if (choice is null) return;
+
+        // A choice always runs its commands before anything else.
+        foreach (var cmd in choice.Commands)
+            ExecuteCommand(cmd);
+
+        // Navigate only when the choice is linked to a node; a targetless choice
+        // stays on the current node (its commands have already run).
+        if (choice.Target is { } target)
             CurrentNode = target;
-        }
     }
 
     private void ExecuteCommand(CommandViewModel cmd)

@@ -22,7 +22,8 @@ public partial class EditorViewModel : ViewModelBase
     private int _newNodeCounter;
     private int _newEntityCounter;
 
-    public string ProjectName { get; }
+    [ObservableProperty]
+    private string _projectName;
 
     public ObservableCollection<NodeViewModel> Nodes { get; } = new();
     public ObservableCollection<ConnectionViewModel> Connections { get; } = new();
@@ -51,6 +52,7 @@ public partial class EditorViewModel : ViewModelBase
     public object? SelectedInspectorTarget
         => (object?)SelectedComponent ?? SelectedChoice ?? (object?)SelectedEntity ?? SelectedNode;
 
+    partial void OnProjectNameChanged(string value) => MarkDirty();
     partial void OnSelectedNodeChanged(NodeViewModel? value) => OnPropertyChanged(nameof(SelectedInspectorTarget));
     partial void OnSelectedChoiceChanged(ChoiceViewModel? value) => OnPropertyChanged(nameof(SelectedInspectorTarget));
     partial void OnSelectedEntityChanged(EntityViewModel? value) => OnPropertyChanged(nameof(SelectedInspectorTarget));
@@ -85,7 +87,7 @@ public partial class EditorViewModel : ViewModelBase
     {
         _projectService = projectService;
         _projectId = snapshot.ProjectId;
-        ProjectName = projectName;
+        _projectName = projectName;
         Nodes.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasNodes));
         BuildFrom(snapshot);
 
