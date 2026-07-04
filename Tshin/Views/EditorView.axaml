@@ -102,8 +102,19 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:ConnectionViewModel">
-                                <Path Data="{Binding Geometry}" Stroke="{StaticResource AccentBrush}"
-                                      StrokeThickness="2" />
+                                <Grid>
+                                    <Path Data="{Binding Geometry}" Stroke="{Binding Stroke}"
+                                          StrokeThickness="2" />
+                                    <Path Data="M 0,0 L -10,-6 M 0,0 L -10,6"
+                                          Stroke="{Binding Stroke}" StrokeThickness="2">
+                                        <Path.RenderTransform>
+                                            <TransformGroup>
+                                                <TranslateTransform X="{Binding ArrowTip.X}"
+                                                                     Y="{Binding ArrowTip.Y}" />
+                                            </TransformGroup>
+                                        </Path.RenderTransform>
+                                    </Path>
+                                </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

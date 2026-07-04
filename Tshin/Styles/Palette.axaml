@@ -35,6 +35,16 @@
     <!-- Lines -->
     <Color x:Key="SeparatorColor">#3A3A3C</Color>
     <Color x:Key="ControlBorderColor">#48484A</Color>
+    
+    <!-- Wire colors -->
+    <Color x:Key="WireColor0">#0A84FF</Color>
+    <Color x:Key="WireColor1">#5E5CE6</Color>
+    <Color x:Key="WireColor2">#30D158</Color>
+    <Color x:Key="WireColor3">#FF9F0A</Color>
+    <Color x:Key="WireColor4">#FF375F</Color>
+    <Color x:Key="WireColor5">#64D2FF</Color>
+    <Color x:Key="WireColor6">#BF5AF2</Color>
+
 
     <!-- Brushes -->
     <SolidColorBrush x:Key="WindowBgBrush" Color="{StaticResource WindowBgColor}" />
@@ -65,6 +75,15 @@
     <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="{StaticResource AccentColor}" />
     <SolidColorBrush x:Key="ToggleSwitchStrokeOnPointerOver" Color="{StaticResource AccentHoverColor}" />
     <SolidColorBrush x:Key="ToggleSwitchStrokeOnPressed" Color="{StaticResource AccentColor}" />
+
+    <!-- Wire palette (alternating colours for connection lines, 7 distinct hues) -->
+    <SolidColorBrush x:Key="WireBrush0" Color="{StaticResource WireColor0}" />
+    <SolidColorBrush x:Key="WireBrush1" Color="{StaticResource WireColor1}" />
+    <SolidColorBrush x:Key="WireBrush2" Color="{StaticResource WireColor2}" />
+    <SolidColorBrush x:Key="WireBrush3" Color="{StaticResource WireColor3}" />
+    <SolidColorBrush x:Key="WireBrush4" Color="{StaticResource WireColor4}" />
+    <SolidColorBrush x:Key="WireBrush5" Color="{StaticResource WireColor5}" />
+    <SolidColorBrush x:Key="WireBrush6" Color="{StaticResource WireColor6}" />
 
     <!-- Icons (SVG path data) -->
     <!-- Eye open: oval outline with circle iris -->
