@@ -77,21 +77,27 @@
                     </ContextMenu>
                 </Border.ContextMenu>
 
-                <!-- World space (pan + zoom applied here) -->
-                <Panel x:Name="World" Width="6000" Height="6000" HorizontalAlignment="Left" VerticalAlignment="Top"
-                       RenderTransformOrigin="0,0">
+                <!-- World space (pan + zoom applied here). It's a large fixed canvas
+                     (NodeLayout.CanvasSize) whose CENTRE is world origin: cards are laid
+                     out at world + CanvasBias so they always sit inside the canvas bounds
+                     and Avalonia never culls them, in any drag direction. The translate
+                     subtracts CanvasBias*Zoom (RenderOffset) so the view is unchanged. -->
+                <Panel x:Name="World" Width="{x:Static vm:NodeLayout.CanvasSize}"
+                       Height="{x:Static vm:NodeLayout.CanvasSize}"
+                       HorizontalAlignment="Left" VerticalAlignment="Top"
+                       ClipToBounds="False" RenderTransformOrigin="0,0">
                     <Panel.RenderTransform>
                         <TransformGroup>
                             <ScaleTransform ScaleX="{Binding Zoom}" ScaleY="{Binding Zoom}" />
-                            <TranslateTransform X="{Binding OffsetX}" Y="{Binding OffsetY}" />
+                            <TranslateTransform X="{Binding RenderOffsetX}" Y="{Binding RenderOffsetY}" />
                         </TransformGroup>
                     </Panel.RenderTransform>
 
                     <!-- Wires (behind nodes) -->
-                    <ItemsControl ItemsSource="{Binding Connections}">
+                    <ItemsControl ItemsSource="{Binding Connections}" ClipToBounds="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <Canvas />
+                                <Canvas Width="{x:Static vm:NodeLayout.CanvasSize}" Height="{x:Static vm:NodeLayout.CanvasSize}" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
@@ -107,16 +113,16 @@
                           StrokeDashArray="4,3" IsVisible="False" />
 
                     <!-- Entity cards (node-like layout, blue theme) -->
-                    <ItemsControl ItemsSource="{Binding Entities}">
+                    <ItemsControl ItemsSource="{Binding Entities}" ClipToBounds="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <Canvas />
+                                <Canvas Width="{x:Static vm:NodeLayout.CanvasSize}" Height="{x:Static vm:NodeLayout.CanvasSize}" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.Styles>
                             <Style Selector="ContentPresenter" x:DataType="vm:EntityViewModel">
-                                <Setter Property="Canvas.Left" Value="{Binding X}" />
-                                <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                                <Setter Property="Canvas.Left" Value="{Binding CanvasX}" />
+                                <Setter Property="Canvas.Top" Value="{Binding CanvasY}" />
                             </Style>
                         </ItemsControl.Styles>
                         <ItemsControl.ItemTemplate>
@@ -188,16 +194,16 @@
                     </ItemsControl>
 
                     <!-- Nodes -->
-                    <ItemsControl ItemsSource="{Binding Nodes}">
+                    <ItemsControl ItemsSource="{Binding Nodes}" ClipToBounds="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <Canvas />
+                                <Canvas Width="{x:Static vm:NodeLayout.CanvasSize}" Height="{x:Static vm:NodeLayout.CanvasSize}" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.Styles>
                             <Style Selector="ContentPresenter" x:DataType="vm:NodeViewModel">
-                                <Setter Property="Canvas.Left" Value="{Binding X}" />
-                                <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                                <Setter Property="Canvas.Left" Value="{Binding CanvasX}" />
+                                <Setter Property="Canvas.Top" Value="{Binding CanvasY}" />
                             </Style>
                         </ItemsControl.Styles>
                         <ItemsControl.ItemTemplate>

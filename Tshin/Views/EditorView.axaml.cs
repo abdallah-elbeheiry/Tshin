@@ -357,10 +357,13 @@ public partial class EditorView : UserControl
     private void UpdateTempWire(Point viewportPos)
     {
         if (_connectOwner is null || _connectIndex < 0) return;
+        // The temp wire lives in the same biased canvas space as the cards/wires, so
+        // both endpoints carry NodeLayout.CanvasBias (see NodeLayout.CanvasBias).
         var start = new Point(
-            NodeLayout.OutputPinX(_connectOwner),
-            NodeLayout.OutputPinY(_connectOwner, _connectIndex));
-        var end = ToWorld(viewportPos);
+            NodeLayout.OutputPinX(_connectOwner) + NodeLayout.CanvasBias,
+            NodeLayout.OutputPinY(_connectOwner, _connectIndex) + NodeLayout.CanvasBias);
+        var world = ToWorld(viewportPos);
+        var end = new Point(world.X + NodeLayout.CanvasBias, world.Y + NodeLayout.CanvasBias);
         TempWire.Data = Geometry.Parse(ConnectionViewModel.BuildPath(start, end));
     }
 

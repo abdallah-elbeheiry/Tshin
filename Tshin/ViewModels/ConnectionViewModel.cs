@@ -36,8 +36,14 @@ public sealed class ConnectionViewModel : ViewModelBase, IDisposable
         }
     }
 
-    public Point StartPoint => new(NodeLayout.OutputPinX(Source), NodeLayout.OutputPinY(Source, ChoiceIndex));
-    public Point EndPoint => new(NodeLayout.InputPinX(Target), NodeLayout.InputPinY(Target));
+    // Wires are drawn in the same (biased) canvas space as the node cards, so the pin
+    // coordinates carry the same CanvasBias offset — see NodeLayout.CanvasBias.
+    public Point StartPoint => new(
+        NodeLayout.OutputPinX(Source) + NodeLayout.CanvasBias,
+        NodeLayout.OutputPinY(Source, ChoiceIndex) + NodeLayout.CanvasBias);
+    public Point EndPoint => new(
+        NodeLayout.InputPinX(Target) + NodeLayout.CanvasBias,
+        NodeLayout.InputPinY(Target) + NodeLayout.CanvasBias);
 
     public string PathData => BuildPath(StartPoint, EndPoint);
 

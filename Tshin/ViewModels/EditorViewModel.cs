@@ -83,6 +83,22 @@ public partial class EditorViewModel : ViewModelBase
     public const double MinZoom = 0.25;
     public const double MaxZoom = 2.5;
 
+    // The canvas content is laid out with a fixed CanvasBias offset (see
+    // NodeLayout.CanvasBias) so cards at any world coordinate stay inside the canvas's
+    // bounds and aren't culled. The render translate cancels that bias, so on screen
+    // world origin still lands at (OffsetX, OffsetY): screen = world*Zoom + Offset.
+    public double RenderOffsetX => OffsetX - NodeLayout.CanvasBias * Zoom;
+    public double RenderOffsetY => OffsetY - NodeLayout.CanvasBias * Zoom;
+
+    partial void OnZoomChanged(double value)
+    {
+        OnPropertyChanged(nameof(RenderOffsetX));
+        OnPropertyChanged(nameof(RenderOffsetY));
+    }
+
+    partial void OnOffsetXChanged(double value) => OnPropertyChanged(nameof(RenderOffsetX));
+    partial void OnOffsetYChanged(double value) => OnPropertyChanged(nameof(RenderOffsetY));
+
     public EditorViewModel(StorySnapshot snapshot, string projectName, IProjectService projectService)
     {
         _projectService = projectService;

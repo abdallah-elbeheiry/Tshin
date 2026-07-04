@@ -23,6 +23,11 @@ public partial class NodeViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isSelected;
 
+    // Layout position on the (biased) canvas — see NodeLayout.CanvasBias. Bound to
+    // Canvas.Left/Top so the card renders inside the canvas's bounds at any world X/Y.
+    public double CanvasX => X + NodeLayout.CanvasBias;
+    public double CanvasY => Y + NodeLayout.CanvasBias;
+
     public ObservableCollection<ChoiceViewModel> Choices { get; } = new();
 
     public NodeViewModel(string id, string displayText, double x, double y, Action onChanged)
@@ -36,9 +41,19 @@ public partial class NodeViewModel : ViewModelBase
 
     partial void OnIdChanged(string value) => _onChanged();
     partial void OnDisplayTextChanged(string value) => _onChanged();
-    // X/Y changes happen during drags; mark dirty so the move can be saved.
-    partial void OnXChanged(double value) => _onChanged();
-    partial void OnYChanged(double value) => _onChanged();
+    // X/Y changes happen during drags; mark dirty so the move can be saved, and keep
+    // the biased canvas coordinates (bound to Canvas.Left/Top) in sync.
+    partial void OnXChanged(double value)
+    {
+        OnPropertyChanged(nameof(CanvasX));
+        _onChanged();
+    }
+
+    partial void OnYChanged(double value)
+    {
+        OnPropertyChanged(nameof(CanvasY));
+        _onChanged();
+    }
 
     public ChoiceViewModel AddChoice(NodeViewModel? target = null)
     {

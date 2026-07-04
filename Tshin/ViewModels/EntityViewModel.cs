@@ -30,6 +30,11 @@ public partial class EntityViewModel : ViewModelBase
     [ObservableProperty]
     private bool _visible = true;
 
+    // Layout position on the (biased) canvas — see NodeLayout.CanvasBias. Bound to
+    // Canvas.Left/Top so the card renders inside the canvas's bounds at any world X/Y.
+    public double CanvasX => X + NodeLayout.CanvasBias;
+    public double CanvasY => Y + NodeLayout.CanvasBias;
+
     public ObservableCollection<ComponentViewModel> Components { get; } = new();
 
     public EntityViewModel(string id, string name, double x, double y, Action onChanged)
@@ -42,8 +47,19 @@ public partial class EntityViewModel : ViewModelBase
     }
 
     partial void OnNameChanged(string value) => _onChanged();
-    partial void OnXChanged(double value) => _onChanged();
-    partial void OnYChanged(double value) => _onChanged();
+
+    partial void OnXChanged(double value)
+    {
+        OnPropertyChanged(nameof(CanvasX));
+        _onChanged();
+    }
+
+    partial void OnYChanged(double value)
+    {
+        OnPropertyChanged(nameof(CanvasY));
+        _onChanged();
+    }
+
     partial void OnIsSelectedChanged(bool value) => _onChanged();
     partial void OnVisibleChanged(bool value) => _onChanged();
 }
