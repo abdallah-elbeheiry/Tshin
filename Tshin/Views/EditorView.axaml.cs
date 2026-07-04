@@ -15,45 +15,72 @@ namespace Tshin.Views;
 
 public partial class EditorView : UserControl
 {
-    private enum Mode { None, Pan, Node, Connect }
+    private enum Mode { None, Pan, Node, Connect, Entity }
 
     private Mode _mode;
     private Point _last;
     private NodeViewModel? _dragNode;
     private ChoiceViewModel? _connectChoice;
     private NodeViewModel? _connectOwner;
+    private EntityViewModel? _dragEntity;
     private int _connectIndex = -1;
 
     private EditorViewModel? _vm;
+
+    private const double GridCell = 26;
+    private static readonly Color GridDotColor = Color.Parse("#3A3A3E");
+    private static readonly Color CanvasBgColor = Color.Parse("#161618"); // matches CanvasBgBrush
 
     public EditorView()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
-        World.Background = CreateGridBrush();
+        UpdateGridBackground();
     }
 
-    private static VisualBrush CreateGridBrush()
+    /// <summary>
+    /// Paints the dot grid on the viewport in screen space, following the current
+    /// pan/zoom. Because the tile is re-projected from the world transform, the grid
+    /// covers the whole viewport at any offset — an effectively infinite canvas.
+    /// </summary>
+    private void UpdateGridBackground()
     {
-        const double cell = 26;
+        double zoom = Vm?.Zoom ?? 1;
+        double offsetX = Vm?.OffsetX ?? 0;
+        double offsetY = Vm?.OffsetY ?? 0;
+
+        var screenCell = GridCell * zoom;
+        if (screenCell <= 0) return;
+
+        // Normalise the pan offset into a single-cell phase so the grid scrolls smoothly.
+        var phaseX = ((offsetX % screenCell) + screenCell) % screenCell;
+        var phaseY = ((offsetY % screenCell) + screenCell) % screenCell;
+
         var dot = new Ellipse
         {
             Width = 2,
             Height = 2,
-            Fill = new SolidColorBrush(Color.Parse("#2E2E33")),
+            Fill = new SolidColorBrush(GridDotColor),
         };
-        Canvas.SetLeft(dot, cell / 2);
-        Canvas.SetTop(dot, cell / 2);
+        Canvas.SetLeft(dot, screenCell / 2);
+        Canvas.SetTop(dot, screenCell / 2);
 
-        var tile = new Canvas { Width = cell, Height = cell, Children = { dot } };
+        // Opaque tile (canvas colour + dot) so the brush fully paints the viewport.
+        var tile = new Canvas
+        {
+            Width = screenCell,
+            Height = screenCell,
+            Background = new SolidColorBrush(CanvasBgColor),
+            Children = { dot },
+        };
 
-        return new VisualBrush
+        Viewport.Background = new VisualBrush
         {
             Visual = tile,
             TileMode = TileMode.Tile,
             Stretch = Stretch.None,
-            SourceRect = new RelativeRect(0, 0, cell, cell, RelativeUnit.Absolute),
-            DestinationRect = new RelativeRect(0, 0, cell, cell, RelativeUnit.Absolute),
+            SourceRect = new RelativeRect(0, 0, screenCell, screenCell, RelativeUnit.Absolute),
+            DestinationRect = new RelativeRect(phaseX, phaseY, screenCell, screenCell, RelativeUnit.Absolute),
         };
     }
 
@@ -65,28 +92,54 @@ public partial class EditorView : UserControl
         {
             _vm.RequestFit -= FitToView;
             _vm.RequestExport -= OnRequestExport;
+            _vm.RequestPlay -= OnRequestPlay;
+            _vm.PropertyChanged -= OnVmPropertyChanged;
         }
         _vm = Vm;
         if (_vm is not null)
         {
             _vm.RequestFit += FitToView;
             _vm.RequestExport += OnRequestExport;
+            _vm.RequestPlay += OnRequestPlay;
+            _vm.PropertyChanged += OnVmPropertyChanged;
+        }
+        UpdateGridBackground();
+    }
+
+    private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        // Keep the grid aligned when zoom/offset change via toolbar buttons or code.
+        if (e.PropertyName is nameof(EditorViewModel.Zoom)
+            or nameof(EditorViewModel.OffsetX)
+            or nameof(EditorViewModel.OffsetY))
+        {
+            UpdateGridBackground();
         }
     }
 
     private void OnRequestExport() => OnExportClick(null, new RoutedEventArgs());
 
+    private void OnRequestPlay(PlayerViewModel player)
+    {
+        var window = new PlayerWindow { DataContext = player };
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is not null)
+            window.Show(owner);
+        else
+            window.Show();
+    }
+
     private Point ToWorld(Point p)
         => Vm is { } vm ? new Point((p.X - vm.OffsetX) / vm.Zoom, (p.Y - vm.OffsetY) / vm.Zoom) : p;
 
-    // ---- viewport (pan / background / zoom) --------------------------------
+    // ---- viewport (pan / zoom / background) --------------------------------
 
     private void OnViewportPressed(object? sender, PointerPressedEventArgs e)
     {
         if (Vm is null) return;
         Focus();
         Vm.SelectNode(null);
-        
+
         var pos = e.GetPosition(Viewport);
         _lastRightClickPosition = pos;
 
@@ -105,6 +158,13 @@ public partial class EditorView : UserControl
         if (Vm is not { } vm) return;
         var world = ToWorld(_lastRightClickPosition);
         vm.CreateNodeAt(world.X - NodeLayout.Width / 2, world.Y);
+    }
+
+    private void OnCreateEntityClick(object? sender, RoutedEventArgs e)
+    {
+        if (Vm is not { } vm) return;
+        var world = ToWorld(_lastRightClickPosition);
+        vm.CreateEntityAt(world.X - 90, world.Y);
     }
 
     private async void OnExportClick(object? sender, RoutedEventArgs e)
@@ -155,6 +215,11 @@ public partial class EditorView : UserControl
                 _dragNode.Y += d.Y / vm.Zoom;
                 _last = pos;
                 break;
+            case Mode.Entity when _dragEntity is not null:
+                _dragEntity.X += d.X / vm.Zoom;
+                _dragEntity.Y += d.Y / vm.Zoom;
+                _last = pos;
+                break;
             case Mode.Connect:
                 UpdateTempWire(pos);
                 break;
@@ -169,16 +234,24 @@ public partial class EditorView : UserControl
             var target = NodeAt(world, vm);
             if (target is not null && target != _connectOwner)
                 vm.Connect(_connectChoice, target);
+            else if (target is null)
+                vm.Disconnect(_connectChoice); // dropped on empty canvas → unlink
         }
-        else if (Vm is { } v && _mode == Mode.Node && _dragNode is not null)
+        else if (Vm is { } vmNode && _mode == Mode.Node && _dragNode is not null)
         {
-            _dragNode.X = v.Snap(_dragNode.X);
-            _dragNode.Y = v.Snap(_dragNode.Y);
+            _dragNode.X = vmNode.Snap(_dragNode.X);
+            _dragNode.Y = vmNode.Snap(_dragNode.Y);
+        }
+        else if (Vm is { } vmEntity && _mode == Mode.Entity && _dragEntity is not null)
+        {
+            _dragEntity.X = vmEntity.Snap(_dragEntity.X);
+            _dragEntity.Y = vmEntity.Snap(_dragEntity.Y);
         }
 
         TempWire.IsVisible = false;
         _mode = Mode.None;
         _dragNode = null;
+        _dragEntity = null;
         _connectChoice = null;
         _connectOwner = null;
         _connectIndex = -1;
@@ -199,7 +272,6 @@ public partial class EditorView : UserControl
         e.Handled = true;
     }
 
-
     // ---- node dragging ------------------------------------------------------
 
     private void OnNodeHeaderPressed(object? sender, PointerPressedEventArgs e)
@@ -212,6 +284,51 @@ public partial class EditorView : UserControl
             _last = e.GetPosition(Viewport);
             e.Pointer.Capture(Viewport);
             e.Handled = true;
+        }
+    }
+
+    // ---- entity dragging ----------------------------------------------------
+
+    private void OnEntityHeaderPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control { DataContext: EntityViewModel entity } && Vm is { } vm)
+        {
+            vm.SelectEntity(entity);
+            _mode = Mode.Entity;
+            _dragEntity = entity;
+            _last = e.GetPosition(Viewport);
+            e.Pointer.Capture(Viewport);
+            e.Handled = true;
+        }
+    }
+
+    private void OnComponentBadgePressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control { DataContext: ComponentViewModel component } && Vm is { } vm)
+        {
+            vm.SelectComponent(component);
+            e.Handled = true;
+        }
+    }
+
+    // ---- add component to entity -------------------------------------------
+
+    private void OnAddComponentClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: EntityViewModel entity } && Vm is { } vm)
+        {
+            var menu = new ContextMenu();
+            var numberItem = new MenuItem { Header = "Number" };
+            numberItem.Click += (_, _) => vm.AddComponentToEntity(entity, "number");
+            var textItem = new MenuItem { Header = "Text" };
+            textItem.Click += (_, _) => vm.AddComponentToEntity(entity, "text");
+            var conditionItem = new MenuItem { Header = "Condition" };
+            conditionItem.Click += (_, _) => vm.AddComponentToEntity(entity, "condition");
+            menu.Items.Add(numberItem);
+            menu.Items.Add(textItem);
+            menu.Items.Add(conditionItem);
+
+            menu.Open((Control)sender);
         }
     }
 
@@ -240,10 +357,13 @@ public partial class EditorView : UserControl
     private void UpdateTempWire(Point viewportPos)
     {
         if (_connectOwner is null || _connectIndex < 0) return;
+        // The temp wire lives in the same biased canvas space as the cards/wires, so
+        // both endpoints carry NodeLayout.CanvasBias (see NodeLayout.CanvasBias).
         var start = new Point(
-            NodeLayout.OutputPinX(_connectOwner),
-            NodeLayout.OutputPinY(_connectOwner, _connectIndex));
-        var end = ToWorld(viewportPos);
+            NodeLayout.OutputPinX(_connectOwner) + NodeLayout.CanvasBias,
+            NodeLayout.OutputPinY(_connectOwner, _connectIndex) + NodeLayout.CanvasBias);
+        var world = ToWorld(viewportPos);
+        var end = new Point(world.X + NodeLayout.CanvasBias, world.Y + NodeLayout.CanvasBias);
         TempWire.Data = Geometry.Parse(ConnectionViewModel.BuildPath(start, end));
     }
 
@@ -266,7 +386,18 @@ public partial class EditorView : UserControl
         base.OnKeyDown(e);
         if (e.Key is not (Key.Delete or Key.Back)) return;
         if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox) return;
-        if (Vm is { SelectedNode: not null } vm && vm.RemoveNodeCommand.CanExecute(null))
+        if (Vm is not { } vm) return;
+        if (vm.SelectedComponent is not null)
+        {
+            vm.RemoveComponentFromEntityCommand.Execute(vm.SelectedComponent);
+            e.Handled = true;
+        }
+        else if (vm.SelectedEntity is not null)
+        {
+            vm.RemoveEntityCommand.Execute(vm.SelectedEntity);
+            e.Handled = true;
+        }
+        else if (vm.SelectedNode is not null && vm.RemoveNodeCommand.CanExecute(null))
         {
             vm.RemoveNodeCommand.Execute(null);
             e.Handled = true;
@@ -289,6 +420,15 @@ public partial class EditorView : UserControl
             minY = Math.Min(minY, n.Y);
             maxX = Math.Max(maxX, n.X + NodeLayout.Width);
             maxY = Math.Max(maxY, n.Y + h);
+        }
+
+        // Also include entities in the fit calculation
+        foreach (var e in vm.Entities)
+        {
+            minX = Math.Min(minX, e.X);
+            minY = Math.Min(minY, e.Y);
+            maxX = Math.Max(maxX, e.X + 180);
+            maxY = Math.Max(maxY, e.Y + 80);
         }
 
         const double margin = 60;

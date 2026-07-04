@@ -7,4 +7,5 @@ namespace Tshin.Core.Models;
 public interface IComponent
 {
     string Name { get; set; }
+    bool Visible { get; set; }
 }

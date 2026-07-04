@@ -14,7 +14,8 @@
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Transitions">
             <Transitions>
-                <BrushTransition Property="Background" Duration="0:0:0.12" />
+                <BrushTransition Property="Background" Duration="0:0:0.1" />
+                <BrushTransition Property="Foreground" Duration="0:0:0.1" />
             </Transitions>
         </Setter>
     </Style>
@@ -34,9 +35,9 @@
         <Setter Property="TextElement.Foreground" Value="White" />
     </Style>
 
-    <!-- Ghost / toolbar icon buttons -->
+    <!-- Ghost / toolbar buttons — subtle shade at rest, solid on hover -->
     <Style Selector="Button.ghost">
-        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Background" Value="#18FFFFFF" />
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
         <Setter Property="Padding" Value="9,6" />
     </Style>
@@ -45,15 +46,81 @@
         <Setter Property="TextElement.Foreground" Value="{StaticResource TextPrimaryBrush}" />
     </Style>
 
+    <!-- Destructive / danger — dark-red tinted shade at rest, solid red on hover -->
+    <Style Selector="Button.danger">
+        <Setter Property="Background" Value="{StaticResource DangerSubtleBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.danger:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource DangerBrush}" />
+        <Setter Property="TextElement.Foreground" Value="White" />
+    </Style>
+
+    <!-- Square icon buttons (✕, ⚙, eye) — subtle shade at rest -->
+    <Style Selector="Button.icon">
+        <Setter Property="Background" Value="#18FFFFFF" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+    </Style>
+    <Style Selector="Button.icon:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{StaticResource TextPrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.icon.danger">
+        <Setter Property="Background" Value="{StaticResource DangerSubtleBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+    </Style>
+    <Style Selector="Button.icon.danger:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource DangerBrush}" />
+        <Setter Property="TextElement.Foreground" Value="White" />
+    </Style>
+
+    <!-- ============ ToggleButton (visibility eye) ============ -->
+    <!-- No background, fixed square hit area so the icon doesn't shift on toggle. -->
+    <Style Selector="ToggleButton.visibility">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ToggleButton.visibility /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ToggleButton.visibility:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Opacity" Value="0.7" />
+    </Style>
+    <Style Selector="ToggleButton.visibility:checked /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
     <!-- ============ ToggleButton (ghost) ============ -->
     <Style Selector="ToggleButton.ghost">
-        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Background" Value="#18FFFFFF" />
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="CornerRadius" Value="{StaticResource ControlRadius}" />
         <Setter Property="Padding" Value="9,6" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.1" />
+                <BrushTransition Property="Foreground" Duration="0:0:0.1" />
+            </Transitions>
+        </Setter>
     </Style>
     <Style Selector="ToggleButton.ghost:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
@@ -78,6 +145,29 @@
         <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
     </Style>
 
+    <!-- Inline heading-style editable text (e.g. the epic title in the editor toolbar):
+         reads as plain text, hints on hover, subtle accent frame on focus, no focus ring. -->
+    <Style Selector="TextBox.title">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="6,2" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+    <Style Selector="TextBox.title /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox.title:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#14FFFFFF" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox.title:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#1FFFFFFF" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
     <!-- ============ Sidebar project list ============ -->
     <Style Selector="ListBox.sidebar">
         <Setter Property="Background" Value="Transparent" />
@@ -95,5 +185,83 @@
     </Style>
     <Style Selector="ListBox.sidebar ListBoxItem:selected /template/ ContentPresenter">
         <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+    </Style>
+
+    <!-- ============ ComboBox ============ -->
+    <!-- Match the TextBox look so pickers sit consistently in the inspector. -->
+    <Style Selector="ComboBox">
+        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="{StaticResource ControlRadius}" />
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="ComboBox:focus /template/ Border#Background">
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+
+    <!-- ============ NumericUpDown ============ -->
+    <Style Selector="NumericUpDown">
+        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="{StaticResource ControlRadius}" />
+        <Setter Property="MinHeight" Value="30" />
+    </Style>
+    <Style Selector="NumericUpDown:focus-within">
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+
+    <!-- ============ ToggleSwitch ============ -->
+    <!-- Booleans render as a switch (state), never a checkbox or a true/false dropdown. -->
+    <Style Selector="ToggleSwitch">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="OnContent" Value="" />
+        <Setter Property="OffContent" Value="" />
+        <Setter Property="MinWidth" Value="0" />
+    </Style>
+
+    <!-- ============ Canvas cards (nodes & entities) ============ -->
+    <!-- Shared chrome; only the accent differs between node and entity. -->
+    <Style Selector="Border.card">
+        <Setter Property="Width" Value="240" />
+        <Setter Property="Background" Value="{StaticResource CardBgBrush}" />
+        <Setter Property="CornerRadius" Value="{StaticResource CardRadius}" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.card.node.selected">
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+    <Style Selector="Border.card.entity.selected">
+        <Setter Property="BorderBrush" Value="{StaticResource EntityAccentBrush}" />
+    </Style>
+    <!-- Hidden (Visible = false) canvas items / rows are dimmed. -->
+    <Style Selector="Border.card.hidden">
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <Style Selector="Border.row.hidden">
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+
+    <!-- ============ Inspector typography ============ -->
+    <Style Selector="TextBlock.inspector-title">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+    <Style Selector="TextBlock.section">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Margin" Value="0,8,0,4" />
+    </Style>
+    <Style Selector="TextBlock.field-label">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
     </Style>
 </Styles>

@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Tshin.ViewModels;
 
@@ -22,6 +23,19 @@ public partial class MainWindow : Window
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
     }
+
+    // ---- custom title-bar drag (window has extended client area) ----
+
+    private void OnTitleBarPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            BeginMoveDrag(e);
+    }
+
+    private void OnTitleBarDoubleTapped(object? sender, TappedEventArgs e)
+        => WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
 
     private static void OnDragOver(object? sender, DragEventArgs e)
     {
@@ -57,8 +71,21 @@ public partial class MainWindow : Window
             AllowMultiple = false,
             FileTypeFilter =
             [
-                new FilePickerFileType("Tshin Files") { Patterns = ["*.tshin"] },
-                new FilePickerFileType("All Files") { Patterns = ["*"] },
+                // .tshin has no registered macOS UTI, so a Patterns-only filter greys out
+                // every file in the macOS picker. Declaring generic UTIs (and MIME types)
+                // keeps the files selectable there while Patterns still filters on Windows.
+                new FilePickerFileType("Tshin Files")
+                {
+                    Patterns = ["*.tshin"],
+                    AppleUniformTypeIdentifiers = ["public.data", "public.plain-text"],
+                    MimeTypes = ["text/plain", "application/octet-stream"],
+                },
+                new FilePickerFileType("All Files")
+                {
+                    Patterns = ["*"],
+                    AppleUniformTypeIdentifiers = ["public.item"],
+                    MimeTypes = ["*/*"],
+                },
             ],
         });
 

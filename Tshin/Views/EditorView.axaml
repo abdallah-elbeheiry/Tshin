@@ -1,9 +1,16 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:Tshin.ViewModels"
+             xmlns:conv="clr-namespace:Tshin.Converters"
              x:Class="Tshin.Views.EditorView"
              x:DataType="vm:EditorViewModel"
              Focusable="True">
+
+    <UserControl.Resources>
+        <conv:ComponentTypeToIconConverter x:Key="ComponentTypeIcon" />
+        <conv:ComponentTypeVisibilityConverter x:Key="ComponentTypeVisibility" />
+        <conv:BoolToGeometryConverter x:Key="BoolToGeometry" />
+    </UserControl.Resources>
 
     <UserControl.KeyBindings>
         <KeyBinding Gesture="Meta+S" Command="{Binding SaveCommand}" />
@@ -16,11 +23,14 @@
         <!-- ============ TOOLBAR ============ -->
         <Border DockPanel.Dock="Top" Background="{StaticResource ContentBgBrush}"
                 BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="0,0,0,1"
-                Padding="16,30,16,10">
+                Padding="16,10" Margin="{StaticResource TitleBarInset}">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding ProjectName}" FontSize="15" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding ProjectName}" Classes="title"
+                             FontSize="15" FontWeight="SemiBold"
+                             Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"
+                             MinWidth="60" MaxWidth="280"
+                             ToolTip.Tip="Rename epic" />
                     <Border Background="{StaticResource ControlBgBrush}" CornerRadius="4" Padding="6,1"
                             VerticalAlignment="Center" IsVisible="{Binding IsDirty}">
                         <TextBlock Text="Edited" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" />
@@ -29,7 +39,14 @@
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
                             HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Button Content="+ Add Node" Command="{Binding AddNodeCommand}" Classes="ghost" />
+                    <Button Classes="ghost" Content="+ Add ▾">
+                        <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                <MenuItem Header="Node" Command="{Binding AddNodeCommand}" />
+                                <MenuItem Header="Entity" Command="{Binding AddEntityCommand}" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
                     <Button Content="Run" Command="{Binding RunCommand}" Classes="ghost" />
                 </StackPanel>
 
@@ -56,24 +73,31 @@
                 <Border.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="Create Node" Click="OnCreateNodeClick" />
+                        <MenuItem Header="Create Entity" Click="OnCreateEntityClick" />
                     </ContextMenu>
                 </Border.ContextMenu>
 
-                <!-- World space (pan + zoom applied here) -->
-                <Panel x:Name="World" Width="6000" Height="6000" HorizontalAlignment="Left" VerticalAlignment="Top"
-                       RenderTransformOrigin="0,0">
+                <!-- World space (pan + zoom applied here). It's a large fixed canvas
+                     (NodeLayout.CanvasSize) whose CENTRE is world origin: cards are laid
+                     out at world + CanvasBias so they always sit inside the canvas bounds
+                     and Avalonia never culls them, in any drag direction. The translate
+                     subtracts CanvasBias*Zoom (RenderOffset) so the view is unchanged. -->
+                <Panel x:Name="World" Width="{x:Static vm:NodeLayout.CanvasSize}"
+                       Height="{x:Static vm:NodeLayout.CanvasSize}"
+                       HorizontalAlignment="Left" VerticalAlignment="Top"
+                       ClipToBounds="False" RenderTransformOrigin="0,0">
                     <Panel.RenderTransform>
                         <TransformGroup>
                             <ScaleTransform ScaleX="{Binding Zoom}" ScaleY="{Binding Zoom}" />
-                            <TranslateTransform X="{Binding OffsetX}" Y="{Binding OffsetY}" />
+                            <TranslateTransform X="{Binding RenderOffsetX}" Y="{Binding RenderOffsetY}" />
                         </TransformGroup>
                     </Panel.RenderTransform>
 
                     <!-- Wires (behind nodes) -->
-                    <ItemsControl ItemsSource="{Binding Connections}">
+                    <ItemsControl ItemsSource="{Binding Connections}" ClipToBounds="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <Canvas />
+                                <Canvas Width="{x:Static vm:NodeLayout.CanvasSize}" Height="{x:Static vm:NodeLayout.CanvasSize}" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
@@ -88,33 +112,108 @@
                     <Path x:Name="TempWire" Stroke="{StaticResource AccentHoverBrush}" StrokeThickness="2"
                           StrokeDashArray="4,3" IsVisible="False" />
 
-                    <!-- Nodes -->
-                    <ItemsControl ItemsSource="{Binding Nodes}">
+                    <!-- Entity cards (node-like layout, blue theme) -->
+                    <ItemsControl ItemsSource="{Binding Entities}" ClipToBounds="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <Canvas />
+                                <Canvas Width="{x:Static vm:NodeLayout.CanvasSize}" Height="{x:Static vm:NodeLayout.CanvasSize}" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.Styles>
+                            <Style Selector="ContentPresenter" x:DataType="vm:EntityViewModel">
+                                <Setter Property="Canvas.Left" Value="{Binding CanvasX}" />
+                                <Setter Property="Canvas.Top" Value="{Binding CanvasY}" />
+                            </Style>
+                        </ItemsControl.Styles>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:EntityViewModel">
+                                <Border Classes="card entity"
+                                        Classes.selected="{Binding IsSelected}"
+                                        Classes.hidden="{Binding !Visible}">
+                                    <StackPanel>
+                                        <!-- Header (entity accent) — draggable -->
+                                        <Panel Height="34" PointerPressed="OnEntityHeaderPressed">
+                                            <Border CornerRadius="10,10,0,0" Background="{StaticResource EntityHeaderBrush}" />
+                                            <Grid ColumnDefinitions="*,Auto" Margin="14,0,6,0">
+                                                <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"
+                                                           FontWeight="SemiBold" FontSize="13" Foreground="White" />
+                                                <ToggleButton Grid.Column="1" Classes="visibility"
+                                                              IsChecked="{Binding Visible}"
+                                                              VerticalAlignment="Center"
+                                                              ToolTip.Tip="Shown at runtime">
+                                                    <Path Width="14" Height="14" Stretch="Uniform"
+                                                          Fill="White"
+                                                          Data="{Binding Visible, Converter={StaticResource BoolToGeometry}, ConverterParameter='EyeOpenIcon|EyeClosedIcon'}" />
+                                                </ToggleButton>
+                                            </Grid>
+                                        </Panel>
+
+                                        <!-- Component rows — clickable -->
+                                        <ItemsControl ItemsSource="{Binding Components}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:ComponentViewModel">
+                                                    <Border Margin="8,3,8,0" Padding="8,4"
+                                                            Background="{StaticResource ControlBgBrush}"
+                                                            CornerRadius="6" Classes="row"
+                                                            Classes.hidden="{Binding !Visible}"
+                                                            PointerPressed="OnComponentBadgePressed">
+                                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                                                            <Border Grid.Column="0" Background="{StaticResource EntityAccentBrush}"
+                                                                    CornerRadius="3" Width="18" Height="18"
+                                                                    VerticalAlignment="Center">
+                                                                <TextBlock FontSize="10" FontWeight="Bold" Foreground="White"
+                                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                           Text="{Binding ComponentType, Converter={StaticResource ComponentTypeIcon}}"
+                                                                           ToolTip.Tip="{Binding ComponentType}" />
+                                                            </Border>
+                                                            <TextBlock Grid.Column="1" FontSize="11" FontWeight="Medium"
+                                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                                       Text="{Binding Name}" VerticalAlignment="Center" />
+                                                            <ToggleButton Grid.Column="2" Classes="visibility"
+                                                                          IsChecked="{Binding Visible}"
+                                                                          VerticalAlignment="Center"
+                                                                          ToolTip.Tip="Shown at runtime">
+                                                                <Path Width="12" Height="12" Stretch="Uniform"
+                                                                      Fill="{StaticResource TextSecondaryBrush}"
+                                                                      Data="{Binding Visible, Converter={StaticResource BoolToGeometry}, ConverterParameter='EyeOpenIcon|EyeClosedIcon'}" />
+                                                            </ToggleButton>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <Button Content="+ Component" Classes="ghost" Margin="8,4,8,8"
+                                                HorizontalAlignment="Stretch" FontSize="11"
+                                                Click="OnAddComponentClick"
+                                                CommandParameter="{Binding}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Nodes -->
+                    <ItemsControl ItemsSource="{Binding Nodes}" ClipToBounds="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Canvas Width="{x:Static vm:NodeLayout.CanvasSize}" Height="{x:Static vm:NodeLayout.CanvasSize}" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.Styles>
                             <Style Selector="ContentPresenter" x:DataType="vm:NodeViewModel">
-                                <Setter Property="Canvas.Left" Value="{Binding X}" />
-                                <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                                <Setter Property="Canvas.Left" Value="{Binding CanvasX}" />
+                                <Setter Property="Canvas.Top" Value="{Binding CanvasY}" />
                             </Style>
                         </ItemsControl.Styles>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:NodeViewModel">
-                                <Border Width="240" Background="{StaticResource CardBgBrush}" CornerRadius="10"
-                                        BorderThickness="2" BorderBrush="Transparent"
+                                <Border Classes="card node"
                                         Classes.selected="{Binding IsSelected}">
-                                    <Border.Styles>
-                                        <Style Selector="Border.selected">
-                                            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-                                        </Style>
-                                    </Border.Styles>
                                     <StackPanel>
                                         <!-- Header (height 34) -->
                                         <Panel Height="34" PointerPressed="OnNodeHeaderPressed">
-                                            <Border CornerRadius="10,10,0,0" Background="#33000000" />
+                                            <Border CornerRadius="10,10,0,0" Background="{StaticResource HeaderOverlayBrush}" />
                                             <TextBlock Text="{Binding Id}" Margin="14,0" VerticalAlignment="Center"
                                                        FontWeight="SemiBold" FontSize="13"
                                                        Foreground="{StaticResource TextPrimaryBrush}" />
@@ -141,16 +240,30 @@
                                                         <!-- Each choice is its own block -->
                                                         <Border Margin="8,5,14,5"
                                                                 Background="{StaticResource ControlBgBrush}"
-                                                                CornerRadius="6" Padding="6,0">
-                                                            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                                                CornerRadius="6" Padding="6,0"
+                                                                Classes.selected="{Binding IsSelected}">
+                                                            <Border.Styles>
+                                                                <Style Selector="Border.selected">
+                                                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                                    <Setter Property="BorderThickness" Value="2" />
+                                                                </Style>
+                                                            </Border.Styles>
+                                                            <Grid ColumnDefinitions="*,Auto">
                                                                 <TextBox Grid.Column="0" Text="{Binding DisplayText}"
                                                                          FontSize="11" Padding="4,2"
                                                                          Background="Transparent" BorderThickness="0"
                                                                          VerticalContentAlignment="Center" />
-                                                                <Button Grid.Column="1" Content="✕" Classes="ghost"
-                                                                        Padding="6,0" Margin="2,0,0,0" FontSize="10"
-                                                                        Command="{Binding $parent[ItemsControl].((vm:EditorViewModel)DataContext).RemoveChoiceCommand}"
-                                                                        CommandParameter="{Binding}" />
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                                                            Spacing="2" VerticalAlignment="Center">
+                                                                    <Button Content="⚙" Classes="icon"
+                                                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).OpenChoiceInspectorCommand}"
+                                                                            CommandParameter="{Binding}"
+                                                                            ToolTip.Tip="Edit choice" />
+                                                                    <Button Content="✕" Classes="icon danger"
+                                                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveChoiceCommand}"
+                                                                            CommandParameter="{Binding}"
+                                                                            ToolTip.Tip="Remove choice" />
+                                                                </StackPanel>
                                                             </Grid>
                                                         </Border>
                                                         <!-- Output pin -->
@@ -175,32 +288,251 @@
                 </Panel>
             </Border>
 
-            <!-- Inspector (shows the selected node) -->
-            <Border Width="260" HorizontalAlignment="Right" Margin="0"
+            <!-- ============ RIGHT INSPECTOR (single host) ============ -->
+            <Border Width="280" HorizontalAlignment="Right" Margin="0"
                     Background="{StaticResource ContentBgBrush}"
                     BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="1,0,0,0"
-                    IsVisible="{Binding SelectedNode, Converter={x:Static ObjectConverters.IsNotNull}}">
-                <ContentControl Content="{Binding SelectedNode}">
-                    <ContentControl.ContentTemplate>
-                        <DataTemplate x:DataType="vm:NodeViewModel">
-                            <StackPanel Margin="16" Spacing="6">
-                                <TextBlock Text="Node" FontSize="13" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6" />
-                                <TextBlock Text="ID" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
-                                <TextBox Text="{Binding Id}" />
-                                <TextBlock Text="Display text" FontSize="11"
-                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0" />
-                                <TextBox Text="{Binding DisplayText}" TextWrapping="Wrap" AcceptsReturn="True"
-                                         MinHeight="90" />
+                    IsVisible="{Binding SelectedInspectorTarget, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <ScrollViewer>
+                    <ContentControl Content="{Binding SelectedInspectorTarget}">
+                        <ContentControl.DataTemplates>
 
-                                <Button Content="Delete node" Classes="accent" Margin="0,12,0,0"
-                                        HorizontalAlignment="Stretch"
-                                        Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveNodeCommand}"
-                                        CommandParameter="{Binding}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ContentControl.ContentTemplate>
-                </ContentControl>
+                            <!-- ── Node inspector ── -->
+                            <DataTemplate x:DataType="vm:NodeViewModel">
+                                <StackPanel Margin="16" Spacing="6">
+                                    <TextBlock Text="Node" Classes="inspector-title" />
+                                    <TextBlock Text="ID" Classes="field-label" />
+                                    <TextBox Text="{Binding Id}" />
+                                    <TextBlock Text="Display text" Classes="field-label" Margin="0,8,0,0" />
+                                    <TextBox Text="{Binding DisplayText}" TextWrapping="Wrap" AcceptsReturn="True"
+                                             MinHeight="90" />
+                                    <Button Content="Delete node" Classes="danger" Margin="0,12,0,0"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveNodeCommand}"
+                                            CommandParameter="{Binding}" />
+                                </StackPanel>
+                            </DataTemplate>
+
+                            <!-- ── Choice inspector ── -->
+                            <DataTemplate x:DataType="vm:ChoiceViewModel">
+                                <StackPanel Margin="16" Spacing="6">
+                                    <TextBlock Text="Choice" Classes="inspector-title" />
+                                    <TextBlock Text="Display text" Classes="field-label" />
+                                    <TextBox Text="{Binding DisplayText}" TextWrapping="Wrap" MinHeight="40" />
+
+                                    <TextBlock Text="Commands" Classes="section" />
+
+                                    <ItemsControl ItemsSource="{Binding Commands}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:CommandViewModel">
+                                                <Border Margin="0,2" Padding="6"
+                                                        Background="{StaticResource ControlBgBrush}"
+                                                        CornerRadius="6">
+                                                    <StackPanel Spacing="4">
+                                                        <ComboBox ItemsSource="{Binding AvailableEntities}"
+                                                                  SelectedItem="{Binding TargetEntity}"
+                                                                  DisplayMemberBinding="{Binding Name}"
+                                                                  PlaceholderText="Entity" FontSize="11" />
+
+                                                        <ComboBox ItemsSource="{Binding AvailableComponents}"
+                                                                  SelectedItem="{Binding SelectedComponent}"
+                                                                  DisplayMemberBinding="{Binding Name}"
+                                                                  PlaceholderText="Component" FontSize="11" />
+
+                                                        <ComboBox ItemsSource="{Binding AvailableFields}"
+                                                                  SelectedIndex="{Binding SelectedFieldIndex}"
+                                                                  FontSize="11" Margin="0,2,0,0"
+                                                                  IsVisible="{Binding TargetComponentType, Converter={StaticResource ComponentTypeVisibility}, ConverterParameter='number'}" />
+
+                                                        <NumericUpDown Value="{Binding NumberValue}"
+                                                                       Minimum="0" Maximum="999999"
+                                                                       FormatString="0.##"
+                                                                       FontSize="11" Margin="0,2,0,0"
+                                                                       IsVisible="{Binding TargetComponentType, Converter={StaticResource ComponentTypeVisibility}, ConverterParameter='number'}" />
+
+                                                        <TextBox Text="{Binding TextValue}"
+                                                                 PlaceholderText="Enter text" FontSize="11"
+                                                                 Margin="0,2,0,0"
+                                                                 IsVisible="{Binding TargetComponentType, Converter={StaticResource ComponentTypeVisibility}, ConverterParameter='text'}" />
+
+                                                        <!-- Condition value — toggle switch instead of true/false dropdown -->
+                                                        <ToggleSwitch IsChecked="{Binding BoolValue}"
+                                                                      Margin="0,2,0,0"
+                                                                      IsVisible="{Binding TargetComponentType, Converter={StaticResource ComponentTypeVisibility}, ConverterParameter='condition'}" />
+
+                                                        <Button Content="✕ Remove" Classes="danger"
+                                                                HorizontalAlignment="Right" FontSize="10"
+                                                                Padding="8,3"
+                                                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveCommandFromChoiceCommand}"
+                                                                CommandParameter="{Binding}"
+                                                                ToolTip.Tip="Remove command" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <Button Content="+ Command" Classes="ghost" Margin="0,4,0,0"
+                                            HorizontalAlignment="Stretch" FontSize="11"
+                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).AddCommandToChoiceCommand}"
+                                            CommandParameter="{Binding}" />
+                                </StackPanel>
+                            </DataTemplate>
+
+                            <!-- ── Entity inspector ── -->
+                            <DataTemplate x:DataType="vm:EntityViewModel">
+                                <StackPanel Margin="16" Spacing="6">
+                                    <TextBlock Text="Entity" Classes="inspector-title" />
+                                    <TextBlock Text="Name" Classes="field-label" />
+                                    <TextBox Text="{Binding Name}" />
+                                    <TextBlock Text="ID" Classes="field-label" />
+                                    <TextBox Text="{Binding Id}" IsReadOnly="True" />
+
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                                        <TextBlock Grid.Column="0" Text="Visible" Classes="field-label"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleButton Grid.Column="1" Classes="visibility"
+                                                      IsChecked="{Binding Visible}"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip.Tip="Shown at runtime">
+                                            <Path Width="14" Height="14" Stretch="Uniform"
+                                                  Fill="{StaticResource TextSecondaryBrush}"
+                                                  Data="{Binding Visible, Converter={StaticResource BoolToGeometry}, ConverterParameter='EyeOpenIcon|EyeClosedIcon'}" />
+                                        </ToggleButton>
+                                    </Grid>
+
+                                    <TextBlock Text="Components" Classes="section" />
+
+                                    <ItemsControl ItemsSource="{Binding Components}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ComponentViewModel">
+                                                <Border Margin="0,2" Padding="6"
+                                                        Background="{StaticResource ControlBgBrush}"
+                                                        CornerRadius="6">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <TextBlock Grid.Column="0" FontSize="11" FontWeight="SemiBold"
+                                                                   Text="{Binding Name}" VerticalAlignment="Center" />
+                                                        <Button Grid.Column="1" Content="✕" Classes="icon danger"
+                                                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveComponentFromEntityCommand}"
+                                                                CommandParameter="{Binding}"
+                                                                ToolTip.Tip="Remove component" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <Button Content="Delete entity" Classes="danger" Margin="0,8,0,0"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveEntityCommand}"
+                                            CommandParameter="{Binding}" />
+                                </StackPanel>
+                            </DataTemplate>
+
+                            <!-- ── Number component editor ── -->
+                            <DataTemplate x:DataType="vm:NumberComponentViewModel">
+                                <StackPanel Margin="16" Spacing="6">
+                                    <!-- Breadcrumb back to entity -->
+                                    <Button Content="‹ Back to entity" Classes="ghost" FontSize="11" Margin="0,0,0,4"
+                                            HorizontalAlignment="Left"
+                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).BackToEntityCommand}" />
+                                    <TextBlock Text="Number Component" Classes="inspector-title" />
+                                    <TextBlock Text="Name" Classes="field-label" />
+                                    <TextBox Text="{Binding Name}" />
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                                        <TextBlock Grid.Column="0" Text="Visible" Classes="field-label"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleButton Grid.Column="1" Classes="visibility"
+                                                      IsChecked="{Binding Visible}"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip.Tip="Shown at runtime">
+                                            <Path Width="14" Height="14" Stretch="Uniform"
+                                                  Fill="{StaticResource TextSecondaryBrush}"
+                                                  Data="{Binding Visible, Converter={StaticResource BoolToGeometry}, ConverterParameter='EyeOpenIcon|EyeClosedIcon'}" />
+                                        </ToggleButton>
+                                    </Grid>
+                                    <Separator Margin="0,4" />
+                                    <TextBlock Text="Initial Value" Classes="field-label" />
+                                    <NumericUpDown Value="{Binding Value}"
+                                                   Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}"
+                                                   FormatString="0.##" FontSize="11" Margin="0,2,0,0" />
+                                    <TextBlock Text="Min Value" Classes="field-label" Margin="0,8,0,0" />
+                                    <NumericUpDown Value="{Binding MinValue}" FormatString="0.##" FontSize="11" Margin="0,2,0,0" />
+                                    <TextBlock Text="Max Value" Classes="field-label" Margin="0,8,0,0" />
+                                    <NumericUpDown Value="{Binding MaxValue}" FormatString="0.##" FontSize="11" Margin="0,2,0,0" />
+                                    <Button Content="Remove component" Classes="danger" Margin="0,12,0,0"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveComponentFromEntityCommand}"
+                                            CommandParameter="{Binding}" />
+                                </StackPanel>
+                            </DataTemplate>
+
+                            <!-- ── Text component editor ── -->
+                            <DataTemplate x:DataType="vm:TextComponentViewModel">
+                                <StackPanel Margin="16" Spacing="6">
+                                    <Button Content="‹ Back to entity" Classes="ghost" FontSize="11" Margin="0,0,0,4"
+                                            HorizontalAlignment="Left"
+                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).BackToEntityCommand}" />
+                                    <TextBlock Text="Text Component" Classes="inspector-title" />
+                                    <TextBlock Text="Name" Classes="field-label" />
+                                    <TextBox Text="{Binding Name}" />
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                                        <TextBlock Grid.Column="0" Text="Visible" Classes="field-label"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleButton Grid.Column="1" Classes="visibility"
+                                                      IsChecked="{Binding Visible}"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip.Tip="Shown at runtime">
+                                            <Path Width="14" Height="14" Stretch="Uniform"
+                                                  Fill="{StaticResource TextSecondaryBrush}"
+                                                  Data="{Binding Visible, Converter={StaticResource BoolToGeometry}, ConverterParameter='EyeOpenIcon|EyeClosedIcon'}" />
+                                        </ToggleButton>
+                                    </Grid>
+                                    <Separator Margin="0,4" />
+                                    <TextBlock Text="Initial Value" Classes="field-label" />
+                                    <TextBox Text="{Binding Value}" TextWrapping="Wrap" AcceptsReturn="True"
+                                             MinHeight="60" FontSize="11" Margin="0,2,0,0" />
+                                    <Button Content="Remove component" Classes="danger" Margin="0,12,0,0"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveComponentFromEntityCommand}"
+                                            CommandParameter="{Binding}" />
+                                </StackPanel>
+                            </DataTemplate>
+
+                            <!-- ── Condition component editor ── -->
+                            <DataTemplate x:DataType="vm:ConditionComponentViewModel">
+                                <StackPanel Margin="16" Spacing="6">
+                                    <Button Content="‹ Back to entity" Classes="ghost" FontSize="11" Margin="0,0,0,4"
+                                            HorizontalAlignment="Left"
+                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).BackToEntityCommand}" />
+                                    <TextBlock Text="Condition Component" Classes="inspector-title" />
+                                    <TextBlock Text="Name" Classes="field-label" />
+                                    <TextBox Text="{Binding Name}" />
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                                        <TextBlock Grid.Column="0" Text="Visible" Classes="field-label"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleButton Grid.Column="1" Classes="visibility"
+                                                      IsChecked="{Binding Visible}"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip.Tip="Shown at runtime">
+                                            <Path Width="14" Height="14" Stretch="Uniform"
+                                                  Fill="{StaticResource TextSecondaryBrush}"
+                                                  Data="{Binding Visible, Converter={StaticResource BoolToGeometry}, ConverterParameter='EyeOpenIcon|EyeClosedIcon'}" />
+                                        </ToggleButton>
+                                    </Grid>
+                                    <Separator Margin="0,4" />
+                                    <TextBlock Text="Initial Value" Classes="field-label" />
+                                    <ToggleSwitch IsChecked="{Binding Value}" Margin="0,2,0,0" />
+                                    <Button Content="Remove component" Classes="danger" Margin="0,12,0,0"
+                                            HorizontalAlignment="Stretch"
+                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveComponentFromEntityCommand}"
+                                            CommandParameter="{Binding}" />
+                                </StackPanel>
+                            </DataTemplate>
+
+                        </ContentControl.DataTemplates>
+                    </ContentControl>
+                </ScrollViewer>
             </Border>
 
             <!-- Empty-graph hint -->
@@ -213,61 +545,6 @@
                            HorizontalAlignment="Center" />
             </StackPanel>
 
-            <!-- ============ RUN (play mode) overlay ============ -->
-            <Panel Background="#D0000000"
-                   IsVisible="{Binding Player, Converter={x:Static ObjectConverters.IsNotNull}}">
-                <ContentControl Content="{Binding Player}">
-                    <ContentControl.ContentTemplate>
-                        <DataTemplate x:DataType="vm:PlayerViewModel">
-                            <Border Width="540" MaxHeight="560" VerticalAlignment="Center"
-                                    HorizontalAlignment="Center" Background="{StaticResource CardBgBrush}"
-                                    CornerRadius="14" Padding="28" BoxShadow="0 16 48 0 #80000000">
-                                <DockPanel>
-                                    <!-- Close -->
-                                    <Button DockPanel.Dock="Top" Content="✕" Classes="ghost" Padding="6,2"
-                                            HorizontalAlignment="Right" FontSize="13"
-                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).CloseRunCommand}" />
-
-                                    <!-- Story text -->
-                                    <TextBlock DockPanel.Dock="Top" Text="{Binding Current.DisplayText}"
-                                               FontSize="20" TextWrapping="Wrap" TextAlignment="Center"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                               Margin="0,4,0,24" />
-
-                                    <!-- End-of-branch -->
-                                    <StackPanel DockPanel.Dock="Bottom" IsVisible="{Binding IsEnd}" Spacing="14">
-                                        <TextBlock Text="The End" FontSize="14" FontStyle="Italic"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   HorizontalAlignment="Center" />
-                                        <Button Content="Restart" Classes="accent" HorizontalAlignment="Center"
-                                                Command="{Binding RestartCommand}" />
-                                    </StackPanel>
-
-                                    <!-- Choices -->
-                                    <ItemsControl ItemsSource="{Binding Current.Choices}" IsVisible="{Binding !IsEnd}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <StackPanel Spacing="10" />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:ChoiceViewModel">
-                                                <Button Content="{Binding DisplayText}"
-                                                        HorizontalAlignment="Stretch"
-                                                        HorizontalContentAlignment="Center"
-                                                        Padding="14" FontSize="15"
-                                                        IsEnabled="{Binding Target, Converter={x:Static ObjectConverters.IsNotNull}}"
-                                                        Command="{Binding $parent[ItemsControl].((vm:PlayerViewModel)DataContext).ChooseCommand}"
-                                                        CommandParameter="{Binding}" />
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </DockPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ContentControl.ContentTemplate>
-                </ContentControl>
-            </Panel>
         </Grid>
     </DockPanel>
 </UserControl>

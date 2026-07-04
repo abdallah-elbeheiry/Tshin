@@ -12,4 +12,5 @@ public class ConditionComponent : IComponent
 {
     public string Name { get; set; } = "New Condition";
     public bool Value { get; set; }
+    public bool Visible { get; set; } = true;
 }

@@ -7,6 +7,17 @@ namespace Tshin.ViewModels;
 /// </summary>
 public static class NodeLayout
 {
+    // ── Infinite-canvas coordinate bias ──────────────────────────────────────
+    // Avalonia's Canvas (used as the ItemsPanel) culls children whose LAYOUT
+    // position falls outside the Canvas's own bounds — regardless of ClipToBounds.
+    // So world coordinates (which can be negative or very large as cards are dragged)
+    // are mapped into a large, positive canvas by adding CanvasBias. World origin
+    // therefore sits at the CENTRE of the canvas, giving ±CanvasBias of room in every
+    // direction. The render transform subtracts CanvasBias*Zoom so the view is
+    // unchanged; all pointer/world math stays in unbiased world space.
+    public const double CanvasBias = 100_000;
+    public const double CanvasSize = 2 * CanvasBias;
+
     public const double Width = 240;
     public const double HeaderHeight = 34;
     public const double TextAreaHeight = 64;
