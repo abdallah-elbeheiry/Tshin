@@ -9,6 +9,7 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="Tshin"
+        CanResize="True"
         MinWidth="820" MinHeight="560"
         Width="1100" Height="720"
         Background="Transparent"
@@ -89,5 +90,12 @@
                            Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" />
             </StackPanel>
         </Panel>
+
+        <!-- Draggable title-bar strip: the empty band across the top (right of the
+             traffic lights). Lets the user move the window with the custom chrome. -->
+        <Border Grid.Column="0" Grid.ColumnSpan="2" Name="TitleBar"
+                VerticalAlignment="Top" Height="30" Margin="72,0,0,0"
+                Background="Transparent"
+                PointerPressed="OnTitleBarPressed" DoubleTapped="OnTitleBarDoubleTapped" />
     </Grid>
 </Window>
