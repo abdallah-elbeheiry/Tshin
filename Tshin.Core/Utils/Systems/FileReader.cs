@@ -364,10 +364,10 @@ public static class FileReader
     private static bool ContainsActionVerb(string line, out string verb)
     {
         verb = string.Empty;
-        var spaceIndex = line.IndexOf(' ');
-        if (spaceIndex == -1) return false;
+        var colonIndex = line.IndexOf(':');
+        if (colonIndex == -1) return false;
 
-        var potentialVerb = line[..spaceIndex].Trim().ToLower();
+        var potentialVerb = line[..colonIndex].Trim().ToLower();
         if (potentialVerb is not ("set" or "increase" or "reduce")) return false;
         verb = potentialVerb;
         return true;
@@ -375,15 +375,15 @@ public static class FileReader
 
     private static void ParseAndAddActionCommand(string line, string verbStr, Choice targetChoice, Dictionary<string, Entity> entityCache, EntityManager entityManager)
     {
-        var args = ParseQuoteTokens(line);
-        // args[0] is the verb, skip it
-        if (args.Count < 4) return;
+        var body = line[(line.IndexOf(':') + 1)..].Trim();
+        var args = ParseQuoteTokens(body);
+        if (args.Count < 3) return;
 
-        var targetEntity = ResolveEntity(args[1], entityCache, entityManager);
+        var targetEntity = ResolveEntity(args[0], entityCache, entityManager);
         if (!Enum.TryParse<CommandField>(verbStr, true, out var commandFieldContext)) commandFieldContext = CommandField.Set;
 
-        var targetComponentName = args[2];
-        var rawValue = args[3];
+        var targetComponentName = args[1];
+        var rawValue = args[2];
 
         if (double.TryParse(rawValue, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var numVal))
         {
