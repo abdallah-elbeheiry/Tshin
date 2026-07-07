@@ -174,15 +174,16 @@ public partial class EditorView : UserControl
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel == null) return;
 
+        var suggestedName = System.IO.Path.GetFileNameWithoutExtension(vm.ProjectName);
         var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Export Story",
+            Title = "Export Epic",
             FileTypeChoices = new List<FilePickerFileType>
             {
-                new("Tshin Story Files") { Patterns = new[] { "*.tshin" } }
+                new("Tshin Project") { Patterns = ["*.tshin"] }
             },
             DefaultExtension = "tshin",
-            SuggestedFileName = $"{vm.ProjectName}.tshin"
+            SuggestedFileName = suggestedName
         });
 
         if (file != null)
