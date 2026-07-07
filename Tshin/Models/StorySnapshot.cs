@@ -71,7 +71,11 @@ public sealed record ConditionComponentSnapshot(string Name, bool Value)
     : ComponentSnapshot(Name);
 
 /// <summary>Polymorphic base — mirrors <c>ICommand</c>.</summary>
-public abstract record CommandSnapshot(string TargetEntityId, string TargetComponentName, string Field);
+public abstract record CommandSnapshot(string TargetEntityId, string TargetComponentName, string Field)
+{
+    /// <summary>Optional condition tree gating this command; null when unconditional.</summary>
+    public IConditionComponentNode? Condition { get; set; }
+}
 
 public sealed record ModifyNumberCommandSnapshot(string TargetEntityId, string TargetComponentName, string Field, double Value)
     : CommandSnapshot(TargetEntityId, TargetComponentName, Field);

@@ -311,13 +311,18 @@ public sealed class MockProjectService : IProjectService
         _ => null,
     };
 
-    private static CommandSnapshot CloneCommand(CommandSnapshot cmd) => cmd switch
+    private static CommandSnapshot CloneCommand(CommandSnapshot cmd)
     {
-        ModifyNumberCommandSnapshot n => new ModifyNumberCommandSnapshot(n.TargetEntityId, n.TargetComponentName, n.Field, n.Value),
-        ModifyTextCommandSnapshot t => new ModifyTextCommandSnapshot(t.TargetEntityId, t.TargetComponentName, t.Value),
-        ModifyBooleanCommandSnapshot b => new ModifyBooleanCommandSnapshot(b.TargetEntityId, b.TargetComponentName, b.Value),
-        _ => cmd
-    };
+        CommandSnapshot clone = cmd switch
+        {
+            ModifyNumberCommandSnapshot n => new ModifyNumberCommandSnapshot(n.TargetEntityId, n.TargetComponentName, n.Field, n.Value),
+            ModifyTextCommandSnapshot t => new ModifyTextCommandSnapshot(t.TargetEntityId, t.TargetComponentName, t.Value),
+            ModifyBooleanCommandSnapshot b => new ModifyBooleanCommandSnapshot(b.TargetEntityId, b.TargetComponentName, b.Value),
+            _ => cmd
+        };
+        clone.Condition = CloneCondition(cmd.Condition);
+        return clone;
+    }
 
     private static ComponentSnapshot CloneComponent(ComponentSnapshot comp)
     {

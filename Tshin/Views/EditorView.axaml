@@ -389,12 +389,29 @@
             </Border>
 
             <!-- ============ RIGHT INSPECTOR (single host) ============ -->
-            <Border Width="280" HorizontalAlignment="Right" Margin="0"
+            <!-- Drag the grip on the left edge to resize (OnInspectorResize clamps the
+                 width); the ScrollViewer scrolls horizontally when a deep condition tree
+                 is still wider than the chosen width. -->
+            <Grid x:Name="InspectorHost" HorizontalAlignment="Right" ColumnDefinitions="Auto,Auto"
+                  IsVisible="{Binding SelectedInspectorTarget, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <Thumb Grid.Column="0" x:Name="InspectorResizeGrip" Width="6"
+                       Background="Transparent" Cursor="SizeWestEast"
+                       DragDelta="OnInspectorResize" ToolTip.Tip="Drag to resize">
+                    <Thumb.Template>
+                        <ControlTemplate>
+                            <Border Background="Transparent">
+                                <Rectangle Width="1" HorizontalAlignment="Center"
+                                           Fill="{StaticResource SeparatorBrush}" />
+                            </Border>
+                        </ControlTemplate>
+                    </Thumb.Template>
+                </Thumb>
+                <Border Grid.Column="1" x:Name="InspectorPanel" Width="280" Margin="0"
                     Background="{StaticResource ContentBgBrush}"
-                    BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="1,0,0,0"
-                    IsVisible="{Binding SelectedInspectorTarget, Converter={x:Static ObjectConverters.IsNotNull}}">
-                <ScrollViewer>
-                    <ContentControl Content="{Binding SelectedInspectorTarget}">
+                    BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="1,0,0,0">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <ContentControl Content="{Binding SelectedInspectorTarget}"
+                                    HorizontalAlignment="Left" MinWidth="278">
                         <ContentControl.DataTemplates>
 
                             <!-- ── Node inspector ── -->
@@ -460,9 +477,28 @@
                                                                       Margin="0,2,0,0"
                                                                       IsVisible="{Binding TargetComponentType, Converter={StaticResource ComponentTypeVisibility}, ConverterParameter='condition'}" />
 
+                                                        <!-- Condition (optional): only run this command when it holds -->
+                                                        <TextBlock Text="Condition (optional)" FontSize="10"
+                                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                                   Margin="0,6,0,0" />
+
+                                                        <Button Content="+ Add condition" Classes="ghost" FontSize="10"
+                                                                HorizontalAlignment="Stretch"
+                                                                IsVisible="{Binding !HasCondition}"
+                                                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).AddConditionToCommandCommand}"
+                                                                CommandParameter="{Binding}" />
+
+                                                        <StackPanel Spacing="4" IsVisible="{Binding HasCondition}">
+                                                            <ContentControl Content="{Binding ConditionRoot}" />
+                                                            <Button Content="Remove condition" Classes="danger" FontSize="10"
+                                                                    HorizontalAlignment="Stretch" Margin="0,2,0,0"
+                                                                    Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveConditionFromCommandCommand}"
+                                                                    CommandParameter="{Binding}" />
+                                                        </StackPanel>
+
                                                         <Button Content="✕ Remove" Classes="danger"
                                                                 HorizontalAlignment="Right" FontSize="10"
-                                                                Padding="8,3"
+                                                                Padding="8,3" Margin="0,4,0,0"
                                                                 Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveCommandFromChoiceCommand}"
                                                                 CommandParameter="{Binding}"
                                                                 ToolTip.Tip="Remove command" />
@@ -659,7 +695,8 @@
                         </ContentControl.DataTemplates>
                     </ContentControl>
                 </ScrollViewer>
-            </Border>
+                </Border>
+            </Grid>
 
             <!-- Empty-graph hint -->
             <StackPanel IsVisible="{Binding !HasNodes}" IsHitTestVisible="False"

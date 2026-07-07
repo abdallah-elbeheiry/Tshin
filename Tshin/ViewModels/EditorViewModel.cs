@@ -159,7 +159,12 @@ public partial class EditorViewModel : ViewModelBase
                 {
                     var cmdVm = CommandFromSnapshot(cmd, Entities, MarkDirty);
                     if (cmdVm is not null)
+                    {
+                        // Restore the command's condition tree (AvailableEntities is set, so pickers resolve).
+                        if (cmd.Condition is not null)
+                            cmdVm.Condition = cmd.Condition;
                         choiceVm.Commands.Add(cmdVm);
+                    }
                 }
                 owner.Choices.Add(choiceVm);
             }
@@ -390,12 +395,15 @@ public partial class EditorViewModel : ViewModelBase
         var componentName = cmdVm.TargetComponentName;
         if (string.IsNullOrEmpty(componentName)) return null;
 
-        return cmdVm.TargetComponentType switch
+        CommandSnapshot? snapshot = cmdVm.TargetComponentType switch
         {
             "number" => new ModifyNumberCommandSnapshot(entityId, componentName, field, cmdVm.NumberValue),
             "text" => new ModifyTextCommandSnapshot(entityId, componentName, cmdVm.TextValue),
             "condition" => new ModifyBooleanCommandSnapshot(entityId, componentName, cmdVm.BoolValue),
             _ => null
         };
+        if (snapshot is not null)
+            snapshot.Condition = cmdVm.Condition;
+        return snapshot;
     }
 }

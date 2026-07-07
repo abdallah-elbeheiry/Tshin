@@ -116,6 +116,24 @@ public partial class EditorViewModel
     }
 
     [RelayCommand]
+    private void AddConditionToCommand(CommandViewModel? command)
+    {
+        if (command is null) return;
+        var root = new LogicalGroupViewModel(MarkDirty) { AvailableEntities = command.AvailableEntities };
+        root.AddChild(new AtomicConditionViewModel(null, command.AvailableEntities, MarkDirty));
+        command.ConditionRoot = root;
+        MarkDirty();
+    }
+
+    [RelayCommand]
+    private void RemoveConditionFromCommand(CommandViewModel? command)
+    {
+        if (command is null) return;
+        command.ConditionRoot = null;
+        MarkDirty();
+    }
+
+    [RelayCommand]
     private void AddAtomicToGroup(LogicalGroupViewModel? group)
     {
         if (group is null) return;
@@ -148,24 +166,32 @@ public partial class EditorViewModel
         while (root.Parent is not null)
             root = root.Parent;
 
-        var owner = FindChoiceByConditionRoot(root);
-        if (owner is not null)
-        {
-            // Removing the root node itself, or emptying the root group, clears the condition.
-            if (parent is null || (root is LogicalGroupViewModel g && g.Children.Count == 0))
-                owner.ConditionRoot = null;
-        }
+        // Removing the root node itself, or emptying the root group, clears the condition
+        // on whichever owner (choice or command) holds this tree.
+        if (parent is null || (root is LogicalGroupViewModel g && g.Children.Count == 0))
+            ClearConditionRootOwner(root);
 
         MarkDirty();
     }
 
-    private ChoiceViewModel? FindChoiceByConditionRoot(ConditionNodeViewModel root)
+    /// <summary>Nulls the <c>ConditionRoot</c> of the choice or command that owns <paramref name="root"/>.</summary>
+    private void ClearConditionRootOwner(ConditionNodeViewModel root)
     {
         foreach (var node in Nodes)
             foreach (var choice in node.Choices)
+            {
                 if (ReferenceEquals(choice.ConditionRoot, root))
-                    return choice;
-        return null;
+                {
+                    choice.ConditionRoot = null;
+                    return;
+                }
+                foreach (var command in choice.Commands)
+                    if (ReferenceEquals(command.ConditionRoot, root))
+                    {
+                        command.ConditionRoot = null;
+                        return;
+                    }
+            }
     }
 
     /// <summary>Links a choice to a target node (drag-to-connect or inspector).</summary>

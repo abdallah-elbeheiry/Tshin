@@ -405,6 +405,16 @@ public partial class EditorView : UserControl
         }
     }
 
+    // ---- inspector resize ---------------------------------------------------
+
+    private void OnInspectorResize(object? sender, VectorEventArgs e)
+    {
+        // The grip sits on the LEFT edge of a right-anchored panel, so dragging left
+        // (negative X) widens it. Clamp to a sensible range.
+        var current = double.IsNaN(InspectorPanel.Width) ? InspectorPanel.Bounds.Width : InspectorPanel.Width;
+        InspectorPanel.Width = Math.Clamp(current - e.Vector.X, 240, 640);
+    }
+
     // ---- zoom to fit --------------------------------------------------------
 
     private void FitToView()

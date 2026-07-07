@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Tshin.Core.Models;
 
 namespace Tshin.ViewModels;
 
@@ -60,6 +61,31 @@ public partial class CommandViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _boolValue;
+
+    // ── Condition (optional) ──────────────────────────────────────────────
+
+    /// <summary>
+    /// The editable condition tree that gates whether this command runs, or null when the
+    /// command is unconditional. Edited through the recursive condition VMs, exactly like
+    /// <see cref="ChoiceViewModel.ConditionRoot"/>.
+    /// </summary>
+    [ObservableProperty]
+    private ConditionNodeViewModel? _conditionRoot;
+
+    /// <summary>
+    /// Gets or sets the optional condition as a domain tree. Bridges the editing VM
+    /// (<see cref="ConditionRoot"/>) to the snapshot layer: the getter rebuilds a fresh
+    /// domain tree; the setter reconstructs the editing VMs.
+    /// </summary>
+    public IConditionComponentNode? Condition
+    {
+        get => ConditionRoot?.BuildModel();
+        set => ConditionRoot = value is null
+            ? null
+            : ConditionNodeViewModel.FromModel(value, AvailableEntities, _onChanged);
+    }
+
+    public bool HasCondition => ConditionRoot is not null;
 
     // ── Derived helpers ───────────────────────────────────────────────────
 
@@ -174,6 +200,12 @@ public partial class CommandViewModel : ViewModelBase
         _onChanged();
     }
     partial void OnSelectedFieldIndexChanged(int value) => _onChanged();
+
+    partial void OnConditionRootChanged(ConditionNodeViewModel? value)
+    {
+        OnPropertyChanged(nameof(HasCondition));
+        _onChanged();
+    }
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
