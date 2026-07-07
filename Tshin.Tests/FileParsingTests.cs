@@ -284,9 +284,7 @@ public class FileParsingTests
     }
 
     #endregion
-
-    #region File Round-Trip with New Syntax
-
+    
     [Fact]
     public async Task Mutations_with_new_syntax_round_trip_correctly()
     {
@@ -671,6 +669,188 @@ public class FileParsingTests
             // When the file reader parsed it, it created a new entity with that GUID.
             // So the condition's entity ID should now match the new entity.
             Assert.True(parsedChoice.Condition.Evaluate(em2));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    #region Condition False Behavior
+
+    [Fact]
+    public async Task If_false_hide_is_parsed_from_file()
+    {
+        var path = TempFile();
+        try
+        {
+            var entityId = Guid.NewGuid().ToString();
+
+            var tshinContent =
+                "[Entity: \"" + entityId + "\"]\n" +
+                "  position: 0,0\n" +
+                "  name: \"Player\"\n" +
+                "  visible: true\n" +
+                "  boolean: \"HasKey\"\n" +
+                "  {\n" +
+                "    value: false\n" +
+                "    visible: true\n" +
+                "  }\n" +
+                "\n" +
+                "[StoryNode: \"start\"]\n" +
+                "  text: \"Door room\"\n" +
+                "  position: 10,20\n" +
+                "  choice: \"Open door\"->null\n" +
+                "  {\n" +
+                "    require: \"" + entityId + "\" \"HasKey\" == true\n" +
+                "    if_false: hide\n" +
+                "  }\n";
+
+            await File.WriteAllTextAsync(path, tshinContent, TestContext.Current.CancellationToken);
+
+            var em = new EntityManager();
+            var nm = new NodeManager();
+            await FileReader.LoadFileAsync(path, em, nm);
+
+            var nodes = nm.GetNodes();
+            var branching = Assert.IsAssignableFrom<IBranchingNode>(nodes[0]);
+            var choice = branching.Choices[0];
+
+            Assert.NotNull(choice.Condition);
+            Assert.Equal(ConditionFalseBehavior.Hide, choice.ConditionFalseBehavior);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task If_false_close_is_parsed_from_file()
+    {
+        var path = TempFile();
+        try
+        {
+            var entityId = Guid.NewGuid().ToString();
+
+            var tshinContent =
+                "[Entity: \"" + entityId + "\"]\n" +
+                "  position: 0,0\n" +
+                "  name: \"Player\"\n" +
+                "  visible: true\n" +
+                "  number: \"Gold\"\n" +
+                "  {\n" +
+                "    value: 10\n" +
+                "    min: 0\n" +
+                "    max: 999\n" +
+                "    visible: true\n" +
+                "  }\n" +
+                "\n" +
+                "[StoryNode: \"start\"]\n" +
+                "  text: \"Shop\"\n" +
+                "  position: 10,20\n" +
+                "  choice: \"Buy sword\"->null\n" +
+                "  {\n" +
+                "    require: \"" + entityId + "\" \"Gold\" >= 50\n" +
+                "    if_false: close\n" +
+                "    reduce: \"" + entityId + "\" \"Gold\" 50\n" +
+                "  }\n";
+
+            await File.WriteAllTextAsync(path, tshinContent, TestContext.Current.CancellationToken);
+
+            var em = new EntityManager();
+            var nm = new NodeManager();
+            await FileReader.LoadFileAsync(path, em, nm);
+
+            var nodes = nm.GetNodes();
+            var branching = Assert.IsAssignableFrom<IBranchingNode>(nodes[0]);
+            var choice = branching.Choices[0];
+
+            Assert.NotNull(choice.Condition);
+            Assert.Equal(ConditionFalseBehavior.Close, choice.ConditionFalseBehavior);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task If_false_defaults_to_close_when_omitted()
+    {
+        var path = TempFile();
+        try
+        {
+            var tshinContent =
+                "[StoryNode: \"start\"]\n" +
+                "  text: \"Start\"\n" +
+                "  position: 0,0\n" +
+                "  choice: \"Go\"->null\n" +
+                "  {\n" +
+                "    set: \"none\" \"x\" 1\n" +
+                "  }\n";
+
+            await File.WriteAllTextAsync(path, tshinContent, TestContext.Current.CancellationToken);
+
+            var em = new EntityManager();
+            var nm = new NodeManager();
+            await FileReader.LoadFileAsync(path, em, nm);
+
+            var nodes = nm.GetNodes();
+            var branching = Assert.IsAssignableFrom<IBranchingNode>(nodes[0]);
+            var choice = branching.Choices[0];
+
+            Assert.Equal(ConditionFalseBehavior.Close, choice.ConditionFalseBehavior);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task If_false_round_trips_through_file_write_then_read()
+    {
+        var path = TempFile();
+        try
+        {
+            var em = new EntityManager();
+            var entity = em.CreateEntity();
+            em.SetComponent(entity, new NumberComponent { Name = "Gold", Value = 100 });
+
+            var nm = new NodeManager();
+            var node = NodeFactory.CreateNode(NodeType.StoryNode, "n1");
+            node.DisplayText = "Test";
+            nm.AppendNode(node);
+
+            if (nm.TryGetNode("n1", out var n) && n is IBranchingNode bn)
+            {
+                var choice = new Choice("Rich only")
+                {
+                    Condition = new AtomicConditionNode
+                    {
+                        EntityId = entity.Id.ToString(),
+                        ComponentId = "Gold",
+                        Operator = ">=",
+                        TargetValue = "50"
+                    },
+                    ConditionFalseBehavior = ConditionFalseBehavior.Hide
+                };
+                bn.Choices.Add(choice);
+            }
+
+            await FileWriter.SaveFileAsync(path, em, nm);
+
+            var em2 = new EntityManager();
+            var nm2 = new NodeManager();
+            await FileReader.LoadFileAsync(path, em2, nm2);
+
+            var nodes = nm2.GetNodes();
+            var branching = Assert.IsAssignableFrom<IBranchingNode>(nodes[0]);
+            var parsedChoice = branching.Choices[0];
+
+            Assert.NotNull(parsedChoice.Condition);
+            Assert.Equal(ConditionFalseBehavior.Hide, parsedChoice.ConditionFalseBehavior);
         }
         finally
         {

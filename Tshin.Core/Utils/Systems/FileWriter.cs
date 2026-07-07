@@ -121,7 +121,8 @@ public static class FileWriter
             var escapedDisplayText = EscapeText(choice.DisplayText);
             await writer.WriteLineAsync($"choice: \"{escapedDisplayText}\"->{targetPart}");
 
-            var hasBlock = choice.Commands.Count > 0 || choice.Condition is not null;
+            var hasBlock = choice.Commands.Count > 0 || choice.Condition is not null
+                || choice.ConditionFalseBehavior != ConditionFalseBehavior.Close;
             if (!hasBlock) continue;
 
             await writer.WriteLineAsync("{");
@@ -130,6 +131,12 @@ public static class FileWriter
             {
                 await writer.WriteAsync("  require: ");
                 await SerializeConditionTreeAsync(writer, choice.Condition, 2);
+            }
+
+            if (choice.ConditionFalseBehavior != ConditionFalseBehavior.Close)
+            {
+                var behavior = choice.ConditionFalseBehavior.ToString().ToLower();
+                await writer.WriteLineAsync($"  if_false: {behavior}");
             }
 
             foreach (var cmd in choice.Commands)

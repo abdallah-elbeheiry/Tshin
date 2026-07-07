@@ -24,6 +24,11 @@ public partial class ChoiceViewModel : ViewModelBase
     /// </summary>
     public IConditionComponentNode? Condition { get; set; }
 
+    /// <summary>
+    /// Gets or sets the behavior when <see cref="Condition"/> evaluates to <see langword="false"/>.
+    /// </summary>
+    public ConditionFalseBehavior ConditionFalseBehavior { get; set; } = ConditionFalseBehavior.Close;
+
     public bool IsValid => Target is not null;
 
     public ObservableCollection<CommandViewModel> Commands { get; } = new();
