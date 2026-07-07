@@ -19,15 +19,41 @@ public partial class ChoiceViewModel : ViewModelBase
     private bool _isSelected;
 
     /// <summary>
-    /// Gets or sets the optional condition that gates this choice in play mode.
-    /// When non-null, the choice is only available if the condition evaluates to <see langword="true"/>.
+    /// The editable condition tree that gates this choice in play mode, or null when the
+    /// choice is unconditional. Edited through the recursive condition VMs.
     /// </summary>
-    public IConditionComponentNode? Condition { get; set; }
+    [ObservableProperty]
+    private ConditionNodeViewModel? _conditionRoot;
+
+    /// <summary>
+    /// Gets or sets the optional condition as a domain tree. Bridges the editing VM
+    /// (<see cref="ConditionRoot"/>) to the player and persistence layers: the getter
+    /// rebuilds a fresh domain tree; the setter reconstructs the editing VMs.
+    /// </summary>
+    public IConditionComponentNode? Condition
+    {
+        get => ConditionRoot?.BuildModel();
+        set => ConditionRoot = value is null
+            ? null
+            : ConditionNodeViewModel.FromModel(value, AvailableEntities, _onChanged);
+    }
+
+    public bool HasCondition => ConditionRoot is not null;
 
     /// <summary>
     /// Gets or sets the behavior when <see cref="Condition"/> evaluates to <see langword="false"/>.
     /// </summary>
-    public ConditionFalseBehavior ConditionFalseBehavior { get; set; } = ConditionFalseBehavior.Close;
+    [ObservableProperty]
+    private ConditionFalseBehavior _conditionFalseBehavior = ConditionFalseBehavior.Close;
+
+    /// <summary>Close/Hide options for the inspector picker; index 0 = Close, 1 = Hide.</summary>
+    public ObservableCollection<string> FalseBehaviorOptions { get; } = new() { "Close", "Hide" };
+
+    public int SelectedFalseBehaviorIndex
+    {
+        get => ConditionFalseBehavior == ConditionFalseBehavior.Hide ? 1 : 0;
+        set => ConditionFalseBehavior = value == 1 ? ConditionFalseBehavior.Hide : ConditionFalseBehavior.Close;
+    }
 
     public bool IsValid => Target is not null;
 
@@ -48,4 +74,16 @@ public partial class ChoiceViewModel : ViewModelBase
 
     partial void OnDisplayTextChanged(string value) => _onChanged();
     partial void OnIsSelectedChanged(bool value) => _onChanged();
+
+    partial void OnConditionRootChanged(ConditionNodeViewModel? value)
+    {
+        OnPropertyChanged(nameof(HasCondition));
+        _onChanged();
+    }
+
+    partial void OnConditionFalseBehaviorChanged(ConditionFalseBehavior value)
+    {
+        OnPropertyChanged(nameof(SelectedFalseBehaviorIndex));
+        _onChanged();
+    }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Tshin.Core.Models;
 
 namespace Tshin.Models;
 
@@ -32,7 +33,13 @@ public sealed class ChoiceSnapshot
 
     /// <summary>Id of the target <see cref="NodeSnapshot"/>, or null if unlinked.</summary>
     public string? TargetNodeId { get; set; }
-    
+
+    /// <summary>Optional condition tree gating this choice; null when unconditional.</summary>
+    public IConditionComponentNode? Condition { get; set; }
+
+    /// <summary>What the player does with the choice when its condition is false.</summary>
+    public ConditionFalseBehavior ConditionFalseBehavior { get; set; } = ConditionFalseBehavior.Close;
+
     public List<CommandSnapshot> Commands { get; init; } = new();
 }
 
