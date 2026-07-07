@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Tshin.Core.Models;
+using Tshin.Core.Utils.Managers;
 
 namespace Tshin.ViewModels;
 
@@ -109,7 +111,15 @@ public partial class PlayerViewModel : ViewModelBase
     {
         if (choice is null) return;
 
-        // A choice always runs its commands before anything else.
+        // Evaluate the condition if one exists; the choice is blocked if it fails.
+        if (choice.Condition is not null)
+        {
+            var em = BuildEntityManagerFromPlayEntities();
+            if (!choice.Condition.Evaluate(em))
+                return;
+        }
+
+        // Execute all mutation commands for this choice.
         foreach (var cmd in choice.Commands)
             ExecuteCommand(cmd);
 
@@ -117,6 +127,49 @@ public partial class PlayerViewModel : ViewModelBase
         // stays on the current node (its commands have already run).
         if (choice.Target is { } target)
             CurrentNode = target;
+    }
+
+    /// <summary>
+    /// Builds a temporary <see cref="EntityManager"/> from the play-mode entity clones
+    /// so that condition tree nodes can evaluate against live game state.
+    /// </summary>
+    private EntityManager BuildEntityManagerFromPlayEntities()
+    {
+        var em = new EntityManager();
+        foreach (var evm in PlayEntities)
+        {
+            var entity = em.CreateEntity(Guid.Parse(evm.Id));
+            entity.Name = evm.Name;
+            entity.X = evm.X;
+            entity.Y = evm.Y;
+            entity.Visible = evm.Visible;
+
+            foreach (var cvm in evm.Components)
+            {
+                switch (cvm)
+                {
+                    case NumberComponentViewModel n:
+                        em.SetComponent(entity, new NumberComponent
+                        {
+                            Name = n.Name, Value = n.Value, MinValue = n.MinValue, MaxValue = n.MaxValue, Visible = n.Visible
+                        });
+                        break;
+                    case TextComponentViewModel t:
+                        em.SetComponent(entity, new TextComponent
+                        {
+                            Name = t.Name, Value = t.Value, Visible = t.Visible
+                        });
+                        break;
+                    case ConditionComponentViewModel c:
+                        em.SetComponent(entity, new ConditionComponent
+                        {
+                            Name = c.Name, Value = c.Value, Visible = c.Visible
+                        });
+                        break;
+                }
+            }
+        }
+        return em;
     }
 
     private void ExecuteCommand(CommandViewModel cmd)

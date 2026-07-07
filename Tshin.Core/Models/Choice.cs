@@ -10,8 +10,9 @@ namespace Tshin.Core.Models;
 /// </summary>
 /// <param name="node">The target destination node to navigate to when this choice is selected.</param>
 /// <param name="displayText">The localized or raw text displayed to the player for this choice.</param>
-/// <param name="commands">The collection of mutations to run against game data when this choice is executed.</param>
-public class Choice(INode? node, string displayText, List<ICommand> commands)
+/// <param name="commandList">The collection of mutations to run against game data when this choice is executed.</param>
+/// <param name="condition">An optional condition tree that gates availability of this choice.</param>
+public class Choice(INode? node, string displayText, List<ICommand> commandList, IConditionComponentNode? condition)
     : IChoice
 {
     /// <summary>
@@ -26,9 +27,17 @@ public class Choice(INode? node, string displayText, List<ICommand> commands)
     public string DisplayText { get; set; } = displayText;
 
     /// <summary>
+    /// Gets or sets the optional root condition node that gates this choice.
+    /// When non-null, the choice is only available if <see cref="IConditionComponentNode.Evaluate"/>
+    /// returns <see langword="true"/> against the current ECS state.
+    /// A value of <see langword="null"/> means no requirement — the choice is always available.
+    /// </summary>
+    public IConditionComponentNode? Condition { get; set; } = condition;
+
+    /// <summary>
     /// Gets or sets the collection of commands that execute sequentially when the player selects this path.
     /// </summary>
-    public List<ICommand> Commands { get; set; } = commands;
+    public List<ICommand> Commands { get; set; } = commandList;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Choice"/> class with display text only,
@@ -37,7 +46,7 @@ public class Choice(INode? node, string displayText, List<ICommand> commands)
     /// explicitly after creation.
     /// </summary>
     /// <param name="displayText">The text displayed to the player.</param>
-    public Choice(string displayText) : this(null, displayText, [])
+    public Choice(string displayText) : this(null, displayText, [], null)
     {
     }
 
@@ -47,7 +56,7 @@ public class Choice(INode? node, string displayText, List<ICommand> commands)
     /// </summary>
     /// <param name="node">The target destination node.</param>
     /// <param name="displayText">The text displayed to the player.</param>
-    public Choice(INode? node, string displayText) : this(node, displayText, [])
+    public Choice(INode? node, string displayText) : this(node, displayText, [], null)
     {
     }
 }

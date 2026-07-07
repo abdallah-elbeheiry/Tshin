@@ -20,6 +20,14 @@ public interface IChoice
     string DisplayText { get; set; }
 
     /// <summary>
+    /// Gets or sets the optional root condition node that gates this choice.
+    /// When non-null, the choice is only available if <see cref="IConditionComponentNode.Evaluate"/>
+    /// returns <see langword="true"/> against the current ECS state.
+    /// A value of <see langword="null"/> means no requirement — the choice is always available.
+    /// </summary>
+    IConditionComponentNode? Condition { get; set; }
+
+    /// <summary>
     /// Gets or sets the collection of side-effect mutations that must execute in order when the path is chosen.
     /// </summary>
     List<ICommand> Commands { get; set; }

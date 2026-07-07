@@ -1,5 +1,3 @@
-using System.IO;
-using System.Linq;
 using System.Text;
 using Tshin.Core.Models;
 using Tshin.Core.Utils.Commands;
@@ -77,7 +75,7 @@ public static class FileWriter
                 break;
 
             case ConditionComponent boolComp:
-                await writer.WriteLineAsync($"boolean: \"{boolComp.Name}\"");
+                await writer.WriteLineAsync($"condition: \"{boolComp.Name}\""); //condition: is also accepted
                 await writer.WriteLineAsync("{");
                 await writer.WriteLineAsync($"  value: {boolComp.Value.ToString().ToLower()}");
                 await writer.WriteLineAsync($"  visible: {visibleStr}"); // Added Component Visibility
@@ -123,41 +121,78 @@ public static class FileWriter
             var escapedDisplayText = EscapeText(choice.DisplayText);
             await writer.WriteLineAsync($"choice: \"{escapedDisplayText}\"->{targetPart}");
 
-            var commands = choice.Commands.ToList();
-            if (commands.Count > 0)
+            var hasBlock = choice.Commands.Count > 0 || choice.Condition is not null;
+            if (!hasBlock) continue;
+
+            await writer.WriteLineAsync("{");
+
+            if (choice.Condition is not null)
             {
-                await SerializeCommandBlockAsync(writer, commands);
+                await writer.WriteAsync("  require: ");
+                await SerializeConditionTreeAsync(writer, choice.Condition, 2);
             }
+
+            foreach (var cmd in choice.Commands)
+            {
+                var verb = cmd.Field.ToString().ToLower();
+
+                switch (cmd)
+                {
+                    case ModifyNumberCommand numCmd:
+                        var numVal = numCmd.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        await writer.WriteLineAsync($"  {verb} \"{numCmd.Entity.Id}\" \"{numCmd.TargetComponentName}\" {numVal}");
+                        break;
+
+                    case ModifyTextCommand textCmd:
+                        var escapedValue = EscapeText(textCmd.Value);
+                        await writer.WriteLineAsync($"  {verb} \"{textCmd.Entity.Id}\" \"{textCmd.TargetComponentName}\" \"{escapedValue}\"");
+                        break;
+
+                    case ModifyBooleanCommand boolCmd:
+                        await writer.WriteLineAsync($"  {verb} \"{boolCmd.Entity.Id}\" \"{boolCmd.TargetComponentName}\" {boolCmd.Value.ToString().ToLower()}");
+                        break;
+                }
+            }
+
+            await writer.WriteLineAsync("}");
         }
     }
 
-    private static async Task SerializeCommandBlockAsync(StreamWriter writer, List<ICommand> commands)
+    /// <summary>
+    /// Recursively serializes a condition tree to the output stream.
+    /// <c>or(...)</c> and <c>and(...)</c> wrappers are output as multi-line indented blocks.
+    /// Atomic conditions are written as single-line quoted tokens with operator and value.
+    /// </summary>
+    /// <param name="writer">The output stream writer.</param>
+    /// <param name="node">The condition node to serialize.</param>
+    /// <param name="indent">The current indentation level (number of spaces).</param>
+    private static async Task SerializeConditionTreeAsync(StreamWriter writer, IConditionComponentNode node, int indent)
     {
-        await writer.WriteLineAsync("{");
+        var pad = new string(' ', indent);
 
-        foreach (var cmd in commands)
+        switch (node)
         {
-            var verb = cmd.Field.ToString().ToLower();
-            
-            switch (cmd)
+            case LogicalGroupNode group:
             {
-                case ModifyNumberCommand numCmd:
-                    var numVal = numCmd.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    await writer.WriteLineAsync($"  {verb}: \"{numCmd.Entity.Id}\", \"{numCmd.TargetComponentName}\", {numVal}");
-                    break;
+                var keyword = group.IsAnd ? "and" : "or";
+                await writer.WriteLineAsync($"{keyword}(");
 
-                case ModifyTextCommand textCmd:
-                    var escapedValue = EscapeText(textCmd.Value);
-                    await writer.WriteLineAsync($"  {verb}: \"{textCmd.Entity.Id}\", \"{textCmd.TargetComponentName}\", \"{escapedValue}\"");
-                    break;
+                foreach (var child in group.Children)
+                {
+                    await SerializeConditionTreeAsync(writer, child, indent + 2);
+                }
 
-                case ModifyBooleanCommand boolCmd:
-                    await writer.WriteLineAsync($"  {verb}: \"{boolCmd.Entity.Id}\", \"{boolCmd.TargetComponentName}\", {boolCmd.Value.ToString().ToLower()}");
-                    break;
+                await writer.WriteLineAsync($"{pad})");
+                break;
+            }
+
+            case AtomicConditionNode atomic:
+            {
+                var escapedComponentId = EscapeText(atomic.ComponentId);
+                await writer.WriteLineAsync($"{pad}\"{atomic.EntityId}\" \"{escapedComponentId}\" {atomic.Operator} {atomic.TargetValue}");
+                break;
             }
         }
-
-        await writer.WriteLineAsync("}");
     }
 
     #endregion
