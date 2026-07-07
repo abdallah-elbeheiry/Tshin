@@ -293,7 +293,7 @@ public class FileParsingTests
         var path = TempFile();
         try
         {
-            // Write a .tshin file using the new mutation syntax (no colons, no commas)
+            // Write a .tshin file using the new mutation syntax (no commas, colons retained)
             var tshinContent =
                 "[Entity: \"e1\"]\n" +
                 "  position: 0,0\n" +
@@ -312,9 +312,9 @@ public class FileParsingTests
                 "  position: 10,20\n" +
                 "  choice: \"Go north\"->null\n" +
                 "  {\n" +
-                "    reduce \"e1\" \"Score\" 10\n" +
-                "    increase \"e1\" \"Score\" 5\n" +
-                "    set \"e1\" \"Score\" 99\n" +
+                "    reduce: \"e1\" \"Score\" 10\n" +
+                "    increase: \"e1\" \"Score\" 5\n" +
+                "    set: \"e1\" \"Score\" 99\n" +
                 "  }\n";
 
             await File.WriteAllTextAsync(path, tshinContent, TestContext.Current.CancellationToken);
@@ -391,7 +391,7 @@ public class FileParsingTests
                 "      \"" + entityId + "\" \"Gold\" >= 50\n" +
                 "      \"" + entityId + "\" \"Level\" > 5\n" +
                 "    )\n" +
-                "    reduce \"" + entityId + "\" \"Gold\" 10\n" +
+                "    reduce: \"" + entityId + "\" \"Gold\" 10\n" +
                 "  }\n";
 
             await File.WriteAllTextAsync(path, tshinContent, TestContext.Current.CancellationToken);
@@ -459,7 +459,7 @@ public class FileParsingTests
                 "      \"" + entityId + "\" \"HasKey\" == true\n" +
                 "      \"" + entityId + "\" \"DoorLocked\" == true\n" +
                 "    )\n" +
-                "    set \"" + entityId + "\" \"DoorLocked\" false\n" +
+                "    set: \"" + entityId + "\" \"DoorLocked\" false\n" +
                 "  }\n";
 
             await File.WriteAllTextAsync(path, tshinContent, TestContext.Current.CancellationToken);
@@ -502,7 +502,7 @@ public class FileParsingTests
                 "  position: 0,0\n" +
                 "  choice: \"Always available\"->null\n" +
                 "  {\n" +
-                "    set \"nonexistent\" \"X\" 1\n" +
+                "    set: \"nonexistent\" \"X\" 1\n" +
                 "  }\n";
 
             await File.WriteAllTextAsync(path, tshinContent, TestContext.Current.CancellationToken);
@@ -575,7 +575,7 @@ public class FileParsingTests
     }
 
     [Fact]
-    public async Task FileWriter_produces_colonless_verb_format()
+    public async Task FileWriter_produces_colon_verb_format_no_commas()
     {
         var path = TempFile();
         try
@@ -605,10 +605,8 @@ public class FileParsingTests
             await FileWriter.SaveFileAsync(path, em, nm);
 
             var content = await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken);
-            Assert.Contains("reduce", content);
-            // The new format does NOT contain colon after the verb
-            Assert.DoesNotContain("reduce:", content);
-            // The new format does NOT contain commas between arguments
+            Assert.Contains("reduce:", content);
+            // Commas between arguments should NOT appear
             Assert.DoesNotContain("\", \"", content);
         }
         finally

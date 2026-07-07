@@ -140,16 +140,16 @@ public static class FileWriter
                 {
                     case ModifyNumberCommand numCmd:
                         var numVal = numCmd.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        await writer.WriteLineAsync($"  {verb} \"{numCmd.Entity.Id}\" \"{numCmd.TargetComponentName}\" {numVal}");
+                        await writer.WriteLineAsync($"  {verb}: \"{numCmd.Entity.Id}\" \"{numCmd.TargetComponentName}\" {numVal}");
                         break;
 
                     case ModifyTextCommand textCmd:
                         var escapedValue = EscapeText(textCmd.Value);
-                        await writer.WriteLineAsync($"  {verb} \"{textCmd.Entity.Id}\" \"{textCmd.TargetComponentName}\" \"{escapedValue}\"");
+                        await writer.WriteLineAsync($"  {verb}: \"{textCmd.Entity.Id}\" \"{textCmd.TargetComponentName}\" \"{escapedValue}\"");
                         break;
 
                     case ModifyBooleanCommand boolCmd:
-                        await writer.WriteLineAsync($"  {verb} \"{boolCmd.Entity.Id}\" \"{boolCmd.TargetComponentName}\" {boolCmd.Value.ToString().ToLower()}");
+                        await writer.WriteLineAsync($"  {verb}: \"{boolCmd.Entity.Id}\" \"{boolCmd.TargetComponentName}\" {boolCmd.Value.ToString().ToLower()}");
                         break;
                 }
             }
