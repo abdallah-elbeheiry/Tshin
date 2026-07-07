@@ -78,6 +78,8 @@ public sealed class MockProjectService : IProjectService
                     {
                         DisplayText = c.DisplayText,
                         TargetNodeId = c.Node?.Id,
+                        Condition = c.Condition,
+                        ConditionFalseBehavior = c.ConditionFalseBehavior,
                         Commands = cmdSnapshots
                     });
                 }
@@ -206,8 +208,12 @@ public sealed class MockProjectService : IProjectService
                     {
                         _nodeManager.TryGetNode(cs.TargetNodeId, out target);
                     }
-                    var choice = new Choice(target, cs.DisplayText);
-                    
+                    var choice = new Choice(target, cs.DisplayText)
+                    {
+                        Condition = cs.Condition,
+                        ConditionFalseBehavior = cs.ConditionFalseBehavior,
+                    };
+
                     // Build commands from snapshot
                     foreach (var cmd in cs.Commands)
                     {
@@ -269,6 +275,8 @@ public sealed class MockProjectService : IProjectService
             {
                 DisplayText = c.DisplayText,
                 TargetNodeId = c.TargetNodeId,
+                Condition = CloneCondition(c.Condition),
+                ConditionFalseBehavior = c.ConditionFalseBehavior,
                 Commands = c.Commands.Select(CloneCommand).ToList(),
             }).ToList(),
         }).ToList(),
@@ -281,6 +289,26 @@ public sealed class MockProjectService : IProjectService
             Visible = e.Visible,
             Components = e.Components.Select(CloneComponent).ToList(),
         }).ToList(),
+    };
+
+    private static IConditionComponentNode? CloneCondition(IConditionComponentNode? node) => node switch
+    {
+        LogicalGroupNode g => new LogicalGroupNode
+        {
+            IsAnd = g.IsAnd,
+            Children = g.Children.Select(CloneCondition)
+                                 .Where(c => c is not null)
+                                 .Cast<IConditionComponentNode>()
+                                 .ToList(),
+        },
+        AtomicConditionNode a => new AtomicConditionNode
+        {
+            EntityId = a.EntityId,
+            ComponentId = a.ComponentId,
+            Operator = a.Operator,
+            TargetValue = a.TargetValue,
+        },
+        _ => null,
     };
 
     private static CommandSnapshot CloneCommand(CommandSnapshot cmd) => cmd switch

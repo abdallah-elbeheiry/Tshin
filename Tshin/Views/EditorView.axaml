@@ -14,6 +14,93 @@
         <conv:MaxValueConverter x:Key="MaxValueDisplay" />
     </UserControl.Resources>
 
+    <!-- Implicit (type-keyed) templates for the recursive condition editor. The group
+         template hosts an ItemsControl over Children with NO ItemTemplate, so each child
+         falls back to these implicit templates → the AND/OR nesting renders recursively. -->
+    <UserControl.DataTemplates>
+
+        <!-- Atomic condition: entity → component → operator → value -->
+        <DataTemplate x:DataType="vm:AtomicConditionViewModel">
+            <Border Margin="0,2" Padding="6"
+                    Background="{StaticResource ControlBgBrush}" CornerRadius="6">
+                <StackPanel Spacing="4">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="Condition" FontSize="10"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="✕" Classes="icon danger"
+                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveConditionNodeCommand}"
+                                CommandParameter="{Binding}"
+                                ToolTip.Tip="Remove condition" />
+                    </Grid>
+
+                    <ComboBox ItemsSource="{Binding AvailableEntities}"
+                              SelectedItem="{Binding TargetEntity}"
+                              DisplayMemberBinding="{Binding Name}"
+                              PlaceholderText="Entity" FontSize="11"
+                              HorizontalAlignment="Stretch" />
+
+                    <ComboBox ItemsSource="{Binding AvailableComponents}"
+                              SelectedItem="{Binding SelectedComponent}"
+                              DisplayMemberBinding="{Binding Name}"
+                              PlaceholderText="Component" FontSize="11"
+                              HorizontalAlignment="Stretch" />
+
+                    <ComboBox ItemsSource="{Binding AvailableOperators}"
+                              SelectedItem="{Binding SelectedOperator}"
+                              PlaceholderText="Operator" FontSize="11"
+                              HorizontalAlignment="Stretch" />
+
+                    <NumericUpDown Value="{Binding NumberValue}"
+                                   FormatString="0.##" FontSize="11" Margin="0,2,0,0"
+                                   IsVisible="{Binding TargetComponentType, Converter={StaticResource ComponentTypeVisibility}, ConverterParameter='number'}" />
+
+                    <TextBox Text="{Binding TextValue}"
+                             PlaceholderText="Enter text" FontSize="11" Margin="0,2,0,0"
+                             IsVisible="{Binding TargetComponentType, Converter={StaticResource ComponentTypeVisibility}, ConverterParameter='text'}" />
+
+                    <ToggleSwitch IsChecked="{Binding BoolValue}" Margin="0,2,0,0"
+                                  IsVisible="{Binding TargetComponentType, Converter={StaticResource ComponentTypeVisibility}, ConverterParameter='condition'}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- Logical group: AND/OR selector + recursive children + add buttons -->
+        <DataTemplate x:DataType="vm:LogicalGroupViewModel">
+            <Border Margin="0,2" Padding="6"
+                    Background="{StaticResource ControlBgBrush}" CornerRadius="6"
+                    BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="1">
+                <StackPanel Spacing="4">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <ComboBox Grid.Column="0" ItemsSource="{Binding LogicOptions}"
+                                  SelectedIndex="{Binding SelectedLogicIndex}"
+                                  FontSize="11" ToolTip.Tip="AND = all must hold; OR = any holds" />
+                        <TextBlock Grid.Column="1" Text="group" FontSize="10" Margin="6,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                        <Button Grid.Column="2" Content="✕" Classes="icon danger"
+                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveConditionNodeCommand}"
+                                CommandParameter="{Binding}"
+                                ToolTip.Tip="Remove group" />
+                    </Grid>
+
+                    <!-- Recursive children: no ItemTemplate → implicit templates apply -->
+                    <ItemsControl ItemsSource="{Binding Children}" Margin="12,0,0,0" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Button Content="+ Condition" Classes="ghost" FontSize="10"
+                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).AddAtomicToGroupCommand}"
+                                CommandParameter="{Binding}" />
+                        <Button Content="+ Group" Classes="ghost" FontSize="10"
+                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).AddGroupToGroupCommand}"
+                                CommandParameter="{Binding}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+    </UserControl.DataTemplates>
+
     <UserControl.KeyBindings>
         <KeyBinding Gesture="Meta+S" Command="{Binding SaveCommand}" />
         <KeyBinding Gesture="Meta+R" Command="{Binding RunCommand}" />
@@ -389,6 +476,31 @@
                                             HorizontalAlignment="Stretch" FontSize="11"
                                             Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).AddCommandToChoiceCommand}"
                                             CommandParameter="{Binding}" />
+
+                                    <!-- Condition (optional) -->
+                                    <TextBlock Text="Condition (optional)" Classes="section" />
+
+                                    <Button Content="+ Add condition" Classes="ghost"
+                                            HorizontalAlignment="Stretch" FontSize="11"
+                                            IsVisible="{Binding !HasCondition}"
+                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).AddConditionToChoiceCommand}"
+                                            CommandParameter="{Binding}" />
+
+                                    <StackPanel Spacing="6" IsVisible="{Binding HasCondition}">
+                                        <ContentControl Content="{Binding ConditionRoot}" />
+
+                                        <TextBlock Text="If condition is false" Classes="field-label"
+                                                   Margin="0,4,0,0" />
+                                        <ComboBox ItemsSource="{Binding FalseBehaviorOptions}"
+                                                  SelectedIndex="{Binding SelectedFalseBehaviorIndex}"
+                                                  FontSize="11" HorizontalAlignment="Stretch"
+                                                  ToolTip.Tip="Close = shown but not selectable; Hide = removed" />
+
+                                        <Button Content="Remove condition" Classes="danger"
+                                                HorizontalAlignment="Stretch" FontSize="11" Margin="0,4,0,0"
+                                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveConditionCommand}"
+                                                CommandParameter="{Binding}" />
+                                    </StackPanel>
                                 </StackPanel>
                             </DataTemplate>
 

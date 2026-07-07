@@ -28,6 +28,13 @@ public partial class PlayerViewModel : ViewModelBase
     [ObservableProperty]
     private NodeViewModel? _currentNode;
 
+    /// <summary>
+    /// The choices offered on the current node, projected for play: each carries whether
+    /// it is openable (its condition holds), and Hidden choices are omitted entirely.
+    /// Rebuilt whenever the node changes or a choice's commands mutate game state.
+    /// </summary>
+    public ObservableCollection<PlayChoiceViewModel> CurrentChoices { get; } = new();
+
     public PlayerViewModel(NodeViewModel? start,
                            ObservableCollection<EntityViewModel>? liveEntities,
                            Action onChanged)
@@ -58,6 +65,29 @@ public partial class PlayerViewModel : ViewModelBase
         if (start is not null)
         {
             CollectNodes(start, _allNodes);
+        }
+
+        RefreshChoices();
+    }
+
+    /// <summary>
+    /// Rebuilds <see cref="CurrentChoices"/> for the current node: evaluates each choice's
+    /// condition against live play state, marks it (Close) openable/blocked, and skips
+    /// choices whose false-behavior is Hide.
+    /// </summary>
+    private void RefreshChoices()
+    {
+        CurrentChoices.Clear();
+        if (CurrentNode is null) return;
+
+        var em = BuildEntityManagerFromPlayEntities();
+        foreach (var choice in CurrentNode.Choices)
+        {
+            var condition = choice.Condition;
+            var openable = condition is null || condition.Evaluate(em);
+            if (!openable && choice.ConditionFalseBehavior == ConditionFalseBehavior.Hide)
+                continue;
+            CurrentChoices.Add(new PlayChoiceViewModel(choice, openable));
         }
     }
 
@@ -104,7 +134,11 @@ public partial class PlayerViewModel : ViewModelBase
     [RelayCommand]
     private void ToggleEntitiesPanel() => IsEntitiesPanelExpanded = !IsEntitiesPanelExpanded;
 
-    partial void OnCurrentNodeChanged(NodeViewModel? value) => OnPropertyChanged(nameof(IsEnd));
+    partial void OnCurrentNodeChanged(NodeViewModel? value)
+    {
+        OnPropertyChanged(nameof(IsEnd));
+        RefreshChoices();
+    }
 
     [RelayCommand]
     private void Choose(ChoiceViewModel? choice)
@@ -127,6 +161,9 @@ public partial class PlayerViewModel : ViewModelBase
         // stays on the current node (its commands have already run).
         if (choice.Target is { } target)
             CurrentNode = target;
+        else
+            // Same-node re-evaluation: commands may have changed which choices are openable.
+            RefreshChoices();
     }
 
     /// <summary>
@@ -212,4 +249,25 @@ public partial class PlayerViewModel : ViewModelBase
 
     [RelayCommand]
     private void Restart() => CurrentNode = _start;
+}
+
+/// <summary>
+/// A choice as presented in the player: the underlying <see cref="ChoiceViewModel"/> plus
+/// whether it is currently openable. Close-behavior choices appear disabled when not
+/// openable; Hide-behavior choices are absent from <see cref="PlayerViewModel.CurrentChoices"/>.
+/// </summary>
+public partial class PlayChoiceViewModel : ViewModelBase
+{
+    public ChoiceViewModel Choice { get; }
+
+    public string DisplayText => Choice.DisplayText;
+
+    [ObservableProperty]
+    private bool _isOpenable;
+
+    public PlayChoiceViewModel(ChoiceViewModel choice, bool isOpenable)
+    {
+        Choice = choice;
+        _isOpenable = isOpenable;
+    }
 }

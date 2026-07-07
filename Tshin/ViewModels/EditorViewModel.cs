@@ -150,6 +150,10 @@ public partial class EditorViewModel : ViewModelBase
                 NodeViewModel? target = c.TargetNodeId is not null && byId.TryGetValue(c.TargetNodeId, out var t) ? t : null;
                 var choiceVm = new ChoiceViewModel(c.DisplayText, target, MarkDirty);
                 choiceVm.AvailableEntities = Entities;
+                // Restore the condition tree (AvailableEntities is set, so pickers resolve).
+                if (c.Condition is not null)
+                    choiceVm.Condition = c.Condition;
+                choiceVm.ConditionFalseBehavior = c.ConditionFalseBehavior;
                 // Build commands from snapshot
                 foreach (var cmd in c.Commands)
                 {
@@ -360,6 +364,8 @@ public partial class EditorViewModel : ViewModelBase
                 {
                     DisplayText = choice.DisplayText,
                     TargetNodeId = choice.Target?.Id,
+                    Condition = choice.Condition,
+                    ConditionFalseBehavior = choice.ConditionFalseBehavior,
                 };
                 foreach (var cmdVm in choice.Commands)
                 {

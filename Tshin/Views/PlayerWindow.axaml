@@ -30,20 +30,21 @@
                 </StackPanel>
 
                 <!-- Choices -->
-                <ItemsControl ItemsSource="{Binding CurrentNode.Choices}" IsVisible="{Binding !IsEnd}">
+                <ItemsControl ItemsSource="{Binding CurrentChoices}" IsVisible="{Binding !IsEnd}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Spacing="10" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ChoiceViewModel">
+                        <DataTemplate x:DataType="vm:PlayChoiceViewModel">
                             <Button Content="{Binding DisplayText}"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Center"
                                     Padding="14" FontSize="15"
+                                    IsEnabled="{Binding IsOpenable}"
                                     Command="{Binding $parent[ItemsControl].((vm:PlayerViewModel)DataContext).ChooseCommand}"
-                                    CommandParameter="{Binding}" />
+                                    CommandParameter="{Binding Choice}" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

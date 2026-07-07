@@ -95,6 +95,79 @@ public partial class EditorViewModel
         }
     }
 
+    // ---- condition editing --------------------------------------------------
+
+    [RelayCommand]
+    private void AddConditionToChoice(ChoiceViewModel? choice)
+    {
+        if (choice is null) return;
+        var root = new LogicalGroupViewModel(MarkDirty) { AvailableEntities = Entities };
+        root.AddChild(new AtomicConditionViewModel(null, Entities, MarkDirty));
+        choice.ConditionRoot = root;
+        MarkDirty();
+    }
+
+    [RelayCommand]
+    private void RemoveCondition(ChoiceViewModel? choice)
+    {
+        if (choice is null) return;
+        choice.ConditionRoot = null;
+        MarkDirty();
+    }
+
+    [RelayCommand]
+    private void AddAtomicToGroup(LogicalGroupViewModel? group)
+    {
+        if (group is null) return;
+        group.AddChild(new AtomicConditionViewModel(null, group.AvailableEntities ?? Entities, MarkDirty));
+        MarkDirty();
+    }
+
+    [RelayCommand]
+    private void AddGroupToGroup(LogicalGroupViewModel? group)
+    {
+        if (group is null) return;
+        var child = new LogicalGroupViewModel(MarkDirty) { AvailableEntities = group.AvailableEntities ?? Entities };
+        child.AddChild(new AtomicConditionViewModel(null, child.AvailableEntities, MarkDirty));
+        group.AddChild(child);
+        MarkDirty();
+    }
+
+    [RelayCommand]
+    private void RemoveConditionNode(ConditionNodeViewModel? node)
+    {
+        if (node is null) return;
+
+        var parent = node.Parent;
+        if (parent is not null)
+            parent.RemoveChild(node);
+
+        // Walk up to the tree root, then find the choice that owns it. Use the captured
+        // parent — RemoveChild has already cleared node.Parent by now.
+        ConditionNodeViewModel root = parent ?? node;
+        while (root.Parent is not null)
+            root = root.Parent;
+
+        var owner = FindChoiceByConditionRoot(root);
+        if (owner is not null)
+        {
+            // Removing the root node itself, or emptying the root group, clears the condition.
+            if (parent is null || (root is LogicalGroupViewModel g && g.Children.Count == 0))
+                owner.ConditionRoot = null;
+        }
+
+        MarkDirty();
+    }
+
+    private ChoiceViewModel? FindChoiceByConditionRoot(ConditionNodeViewModel root)
+    {
+        foreach (var node in Nodes)
+            foreach (var choice in node.Choices)
+                if (ReferenceEquals(choice.ConditionRoot, root))
+                    return choice;
+        return null;
+    }
+
     /// <summary>Links a choice to a target node (drag-to-connect or inspector).</summary>
     public void Connect(ChoiceViewModel choice, NodeViewModel target)
     {
