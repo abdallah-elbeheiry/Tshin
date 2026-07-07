@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Tshin.Core.Models;
 
 namespace Tshin.ViewModels;
 
@@ -16,6 +17,12 @@ public partial class ChoiceViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _isSelected;
+
+    /// <summary>
+    /// Gets or sets the optional condition that gates this choice in play mode.
+    /// When non-null, the choice is only available if the condition evaluates to <see langword="true"/>.
+    /// </summary>
+    public IConditionComponentNode? Condition { get; set; }
 
     public bool IsValid => Target is not null;
 

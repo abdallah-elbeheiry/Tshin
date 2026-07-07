@@ -109,6 +109,21 @@ public class EntityManager
     public IEnumerable<Entity> GetAllEntities() => _entityComponents.Keys;
 
     /// <summary>
+    /// Retrieves an entity by its unique <see cref="Guid"/> identifier.
+    /// </summary>
+    /// <param name="id">The entity identifier to look up.</param>
+    /// <returns>The matching <see cref="Entity"/> if found; otherwise, <see langword="null"/>.</returns>
+    public Entity? FindEntity(Guid id)
+    {
+        foreach (var entity in _entityComponents.Keys)
+        {
+            if (entity.Id == id)
+                return entity;
+        }
+        return null;
+    }
+
+    /// <summary>
     /// Clears all tracked entities and their component collections from memory.
     /// </summary>
     public void ClearEntities() => _entityComponents.Clear();

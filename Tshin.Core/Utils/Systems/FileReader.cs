@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using Tshin.Core.Models;
 using Tshin.Core.Utils.Commands;
@@ -40,8 +37,9 @@ public static class FileReader
         string? pendingComponentMax = null;
         string? pendingComponentVisible = null; // Added tracking variable
 
-        foreach (var rawLine in lines)
+        for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
         {
+            var rawLine = lines[lineIndex];
             var lineWithoutComments = rawLine.Split('#')[0];
             var line = lineWithoutComments.Trim();
             
@@ -171,7 +169,14 @@ public static class FileReader
                 {
                     lastCreatedChoice = ParseChoiceFromValue(valuePart, currentNode, temporaryChoicesMap);
                 }
-                // 3. Process Action Commands inside localized bracket contexts (set:, increase:, reduce:)
+                // 3. Process Requirement condition tree inside bracket contexts
+                else if (insideChoiceBlock && lastCreatedChoice != null && key == "require")
+                {
+                    var condition = ParseRequirementExpression(valuePart, lines, ref lineIndex);
+                    if (condition is not null)
+                        lastCreatedChoice.Condition = condition;
+                }
+                // 4. Process Action Commands inside localized bracket contexts (set, increase, reduce)
                 else if (insideChoiceBlock && lastCreatedChoice != null && ContainsActionVerb(line, out var verbStr))
                 {
                     ParseAndAddActionCommand(line, verbStr, lastCreatedChoice, entityCache, entityManager);
@@ -276,6 +281,7 @@ public static class FileReader
                 break;
             }
             case "boolean":
+            case "condition":
             {
                 bool.TryParse(rawValue, out var val);
                 entityManager.SetComponent(entity, new ConditionComponent { Name = name, Value = val, Visible = isVisible });
@@ -358,10 +364,10 @@ public static class FileReader
     private static bool ContainsActionVerb(string line, out string verb)
     {
         verb = string.Empty;
-        var colonIndex = line.IndexOf(':');
-        if (colonIndex == -1) return false;
+        var spaceIndex = line.IndexOf(' ');
+        if (spaceIndex == -1) return false;
 
-        var potentialVerb = line[..colonIndex].Trim().ToLower();
+        var potentialVerb = line[..spaceIndex].Trim().ToLower();
         if (potentialVerb is not ("set" or "increase" or "reduce")) return false;
         verb = potentialVerb;
         return true;
@@ -369,17 +375,17 @@ public static class FileReader
 
     private static void ParseAndAddActionCommand(string line, string verbStr, Choice targetChoice, Dictionary<string, Entity> entityCache, EntityManager entityManager)
     {
-        var body = line[(line.IndexOf(':') + 1)..].Trim();
-        var args = ParseCommandArgs(body);
-        if (args.Count < 3) return;
+        var args = ParseQuoteTokens(line);
+        // args[0] is the verb, skip it
+        if (args.Count < 4) return;
 
-        var targetEntity = ResolveEntity(args[0], entityCache, entityManager);
+        var targetEntity = ResolveEntity(args[1], entityCache, entityManager);
         if (!Enum.TryParse<CommandField>(verbStr, true, out var commandFieldContext)) commandFieldContext = CommandField.Set;
 
-        var targetComponentName = args[1];
-        var rawValue = args[2];
+        var targetComponentName = args[2];
+        var rawValue = args[3];
 
-        if (double.TryParse(rawValue, System.Globalization.CultureInfo.InvariantCulture, out var numVal))
+        if (double.TryParse(rawValue, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var numVal))
         {
             targetChoice.Commands.Add(new ModifyNumberCommand { Entity = targetEntity, TargetComponentName = targetComponentName, Value = numVal, Field = commandFieldContext });
         }
@@ -487,6 +493,262 @@ public static class FileReader
             return ExtractBetweenQuotes(rawValue);
         }
         return UnescapeText(rawValue.Trim());
+    }
+
+    #endregion
+
+    #region Quote-Driven Tokenizer & Requirement Parsing
+
+    /// <summary>
+    /// Tokenizes a line by extracting content between paired double-quote characters
+    /// using sequential <see cref="string.IndexOf(char, int)"/> scans.
+    /// The remainder after the last closing quote is returned as a final token.
+    /// This approach prevents multi-space anomalies from corrupting relative array indices.
+    /// </summary>
+    /// <param name="line">The input line to tokenize.</param>
+    /// <returns>A list of string tokens parsed from the line.</returns>
+    private static List<string> ParseQuoteTokens(string line)
+    {
+        var tokens = new List<string>();
+        var searchStart = 0;
+
+        while (searchStart < line.Length)
+        {
+            var openQuote = line.IndexOf('"', searchStart);
+            if (openQuote == -1)
+            {
+                // No more quotes — split remaining segment by whitespace
+                var remainder = line[searchStart..].Trim();
+                if (remainder.Length > 0)
+                {
+                    tokens.AddRange(remainder.Split((char[])null, StringSplitOptions.RemoveEmptyEntries));
+                }
+                break;
+            }
+
+            // If there is non-whitespace text before this quote, split it by whitespace
+            if (openQuote > searchStart)
+            {
+                var before = line[searchStart..openQuote].Trim();
+                if (before.Length > 0)
+                {
+                    tokens.AddRange(before.Split((char[])null, StringSplitOptions.RemoveEmptyEntries));
+                }
+            }
+
+            var closeQuote = line.IndexOf('"', openQuote + 1);
+            if (closeQuote == -1)
+            {
+                // Unmatched quote — treat as literal rest of line then split by whitespace
+                var unmatched = line[(openQuote + 1)..].Trim();
+                if (unmatched.Length > 0)
+                {
+                    tokens.AddRange(unmatched.Split((char[])null, StringSplitOptions.RemoveEmptyEntries));
+                }
+                break;
+            }
+
+            tokens.Add(line[(openQuote + 1)..closeQuote]);
+            searchStart = closeQuote + 1;
+        }
+
+        return tokens;
+    }
+
+    /// <summary>
+    /// Normalizes mixed line-ending styles to Unix-style <c>\n</c>.
+    /// Replaces <c>\r\n</c> and bare <c>\r</c> with <c>\n</c> so that
+    /// downstream newline-based splitters behave consistently across macOS, Linux, and Windows.
+    /// </summary>
+    /// <param name="content">The raw multi-line string content to normalize.</param>
+    /// <returns>A string with all line-endings converted to <c>\n</c>.</returns>
+    private static string NormalizeLineEndings(string content)
+    {
+        if (string.IsNullOrEmpty(content))
+            return content;
+
+        return content.Replace("\r\n", "\n").Replace('\r', '\n');
+    }
+
+    /// <summary>
+    /// Parses a <c>require:</c> definition into a recursive <see cref="IConditionComponentNode"/> tree.
+    /// If the initial expression has unbalanced parentheses, additional lines are consumed from
+    /// <paramref name="lines"/> (starting at <paramref name="lineIndex"/>) until structural balance
+    /// is restored. All line endings are normalized before processing.
+    /// </summary>
+    /// <param name="initialValue">The value part of the <c>require:</c> line.</param>
+    /// <param name="lines">The full array of source lines being processed.</param>
+    /// <param name="lineIndex">The current line index. Updated when additional lines are consumed.</param>
+    /// <returns>
+    /// The root <see cref="IConditionComponentNode"/> of the parsed condition tree,
+    /// or <see langword="null"/> if the expression is empty or unparseable.
+    /// </returns>
+    private static IConditionComponentNode? ParseRequirementExpression(string initialValue, string[] lines, ref int lineIndex)
+    {
+        var aggregated = new StringBuilder(initialValue);
+
+        // Check for balanced parentheses; aggregate lines if needed
+        var depth = 0;
+        foreach (var c in initialValue)
+        {
+            if (c == '(') depth++;
+            else if (c == ')') depth--;
+        }
+
+        while (depth > 0 && lineIndex + 1 < lines.Length)
+        {
+            lineIndex++;
+            var nextLine = lines[lineIndex].Split('#')[0];
+            aggregated.Append('\n').Append(nextLine);
+
+            foreach (var c in nextLine)
+            {
+                if (c == '(') depth++;
+                else if (c == ')') depth--;
+            }
+        }
+
+        var fullExpression = NormalizeLineEndings(aggregated.ToString().Trim());
+        if (string.IsNullOrEmpty(fullExpression))
+            return null;
+
+        return BuildConditionTree(fullExpression);
+    }
+
+    /// <summary>
+    /// Recursively builds a condition tree from a requirement expression string.
+    /// Supports top-level <c>or(...)</c> and <c>and(...)</c> wrappers that can be nested.
+    /// Atomic argument lines are separated by newlines at depth 0 of the parent wrapper.
+    /// </summary>
+    /// <param name="expression">The requirement expression string with normalized line endings.</param>
+    /// <returns>
+    /// An <see cref="IConditionComponentNode"/> representing the parsed expression,
+    /// or <see langword="null"/> if the expression cannot be parsed.
+    /// </returns>
+    private static IConditionComponentNode? BuildConditionTree(string expression)
+    {
+        if (string.IsNullOrEmpty(expression))
+            return null;
+
+        var trimmed = expression.Trim();
+
+        // Detect logical wrapper: or(...) or and(...)
+        if (trimmed.StartsWith("or(", StringComparison.OrdinalIgnoreCase) && trimmed.EndsWith(')'))
+        {
+            var inner = trimmed[3..^1]; // strip "or(" and ")"
+            return new LogicalGroupNode
+            {
+                IsAnd = false,
+                Children = ParseConditionChildren(inner)
+            };
+        }
+
+        if (trimmed.StartsWith("and(", StringComparison.OrdinalIgnoreCase) && trimmed.EndsWith(')'))
+        {
+            var inner = trimmed[4..^1]; // strip "and(" and ")"
+            return new LogicalGroupNode
+            {
+                IsAnd = true,
+                Children = ParseConditionChildren(inner)
+            };
+        }
+
+        // Atomic condition line: "EntityId" "ComponentId" <op> <value>
+        return ParseAtomicCondition(trimmed);
+    }
+
+    /// <summary>
+    /// Splits the inner content of an <c>or(...)</c> or <c>and(...)</c> wrapper into
+    /// individual child expressions using depth-based newline splitting.
+    /// Child expression strings are then recursively parsed via <see cref="BuildConditionTree"/>.
+    /// </summary>
+    /// <param name="innerContent">The content between the wrapper parentheses, with normalized newlines.</param>
+    /// <returns>A list of child condition nodes.</returns>
+    private static List<IConditionComponentNode> ParseConditionChildren(string innerContent)
+    {
+        var children = new List<IConditionComponentNode>();
+        var parts = DepthSplitNewlines(innerContent);
+
+        foreach (var part in parts)
+        {
+            var child = BuildConditionTree(part);
+            if (child is not null)
+                children.Add(child);
+        }
+
+        return children;
+    }
+
+    /// <summary>
+    /// Splits a requirement expression into sub-expressions on newline characters,
+    /// but only when the tracking parenthesis depth is exactly zero.
+    /// Stray whitespace is trimmed and blank entries are discarded.
+    /// </summary>
+    /// <param name="content">The normalized (Unix newlines) inner content to split.</param>
+    /// <returns>A list of trimmed, non-empty sub-expression strings.</returns>
+    private static List<string> DepthSplitNewlines(string content)
+    {
+        var results = new List<string>();
+        var current = new StringBuilder();
+        var depth = 0;
+
+        for (var i = 0; i < content.Length; i++)
+        {
+            var c = content[i];
+
+            switch (c)
+            {
+                case '(':
+                    depth++;
+                    current.Append(c);
+                    break;
+
+                case ')':
+                    depth--;
+                    current.Append(c);
+                    break;
+
+                case '\n' when depth == 0:
+                    var segment = current.ToString().Trim();
+                    if (segment.Length > 0)
+                        results.Add(segment);
+                    current.Clear();
+                    break;
+
+                default:
+                    current.Append(c);
+                    break;
+            }
+        }
+
+        // Flush the last segment
+        var lastSegment = current.ToString().Trim();
+        if (lastSegment.Length > 0)
+            results.Add(lastSegment);
+
+        return results;
+    }
+
+    /// <summary>
+    /// Parses an atomic condition line into an <see cref="AtomicConditionNode"/>.
+    /// Expected format: <c>"EntityId" "ComponentId" &lt;op&gt; &lt;value&gt;</c>
+    /// </summary>
+    /// <param name="line">The trimmed atomic condition line.</param>
+    /// <returns>An <see cref="AtomicConditionNode"/> if parsing succeeds; otherwise, <see langword="null"/>.</returns>
+    private static IConditionComponentNode? ParseAtomicCondition(string line)
+    {
+        var tokens = ParseQuoteTokens(line);
+        // tokens: [0]=EntityId, [1]=ComponentId, [2]=operator, [3]=value
+        if (tokens.Count < 4)
+            return null;
+
+        return new AtomicConditionNode
+        {
+            EntityId = tokens[0],
+            ComponentId = tokens[1],
+            Operator = tokens[2],
+            TargetValue = tokens[3]
+        };
     }
 
     #endregion
