@@ -10,6 +10,8 @@
         <conv:ComponentTypeToIconConverter x:Key="ComponentTypeIcon" />
         <conv:ComponentTypeVisibilityConverter x:Key="ComponentTypeVisibility" />
         <conv:BoolToGeometryConverter x:Key="BoolToGeometry" />
+        <conv:NumericSafeConverter x:Key="NumericSafe" />
+        <conv:MaxValueConverter x:Key="MaxValueDisplay" />
     </UserControl.Resources>
 
     <UserControl.KeyBindings>
@@ -465,12 +467,13 @@
                                     <Separator Margin="0,4" />
                                     <TextBlock Text="Initial Value" Classes="field-label" />
                                     <NumericUpDown Value="{Binding Value}"
-                                                   Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}"
+                                                   Minimum="{Binding MinValue}" Maximum="{Binding MaxValue, Converter={StaticResource NumericSafe}}"
                                                    FormatString="0.##" FontSize="11" Margin="0,2,0,0" />
                                     <TextBlock Text="Min Value" Classes="field-label" Margin="0,8,0,0" />
                                     <NumericUpDown Value="{Binding MinValue}" FormatString="0.##" FontSize="11" Margin="0,2,0,0" />
                                     <TextBlock Text="Max Value" Classes="field-label" Margin="0,8,0,0" />
-                                    <NumericUpDown Value="{Binding MaxValue}" FormatString="0.##" FontSize="11" Margin="0,2,0,0" />
+                                    <TextBox Text="{Binding MaxValue, Converter={StaticResource MaxValueDisplay}}"
+                                             FontSize="11" Margin="0,2,0,0" />
                                     <Button Content="Remove component" Classes="danger" Margin="0,12,0,0"
                                             HorizontalAlignment="Stretch"
                                             Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveComponentFromEntityCommand}"
