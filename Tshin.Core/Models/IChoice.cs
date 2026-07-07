@@ -28,6 +28,13 @@ public interface IChoice
     IConditionComponentNode? Condition { get; set; }
 
     /// <summary>
+    /// Gets or sets the behavior to apply when the condition evaluates to <see langword="false"/>.
+    /// If the condition is null or true, this property should be ignored.
+    /// <see cref="ConditionFalseBehavior"/> for more details
+    /// </summary>
+    ConditionFalseBehavior ConditionFalseBehavior { get; set; }
+
+    /// <summary>
     /// Gets or sets the collection of side-effect mutations that must execute in order when the path is chosen.
     /// </summary>
     List<ICommand> Commands { get; set; }

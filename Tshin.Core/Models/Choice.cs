@@ -35,6 +35,13 @@ public class Choice(INode? node, string displayText, List<ICommand> commandList,
     public IConditionComponentNode? Condition { get; set; } = condition;
 
     /// <summary>
+    /// Gets or sets the behavior to apply when the condition evaluates to <see langword="false"/>.
+    /// If the condition is null or true, this property should be ignored.
+    /// <see cref="ConditionFalseBehavior"/> for more details
+    /// </summary>
+    public ConditionFalseBehavior ConditionFalseBehavior { get; set; } = ConditionFalseBehavior.Close;
+
+    /// <summary>
     /// Gets or sets the collection of commands that execute sequentially when the player selects this path.
     /// </summary>
     public List<ICommand> Commands { get; set; } = commandList;
