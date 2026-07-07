@@ -1,0 +1,49 @@
+name: Build and Ship Cross-Platform Releases
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-ship:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_PATH: 'Tshin/Tshin.csproj'
+
+    steps:
+      - name: 📥 Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: 🪟 Compile Windows x64
+        run: |
+          dotnet publish ${{ env.PROJECT_PATH }} -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o dist/win-x64
+          cd dist/win-x64 && zip -r ../../Tshin-Windows-x64.zip . *
+
+      - name: 🐧 Compile Linux x64
+        run: |
+          dotnet publish ${{ env.PROJECT_PATH }} -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o dist/linux-x64
+          cd dist/linux-x64 && zip -r ../../Tshin-Linux-x64.zip . *
+
+      - name: 🍏 Compile macOS Intel
+        run: |
+          dotnet publish ${{ env.PROJECT_PATH }} -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o dist/osx-x64
+          cd dist/osx-x64 && zip -r ../../Tshin-Mac-Intel.zip . *
+
+      - name: 🪵 Compile macOS Apple Silicon
+        run: |
+          dotnet publish ${{ env.PROJECT_PATH }} -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o dist/osx-arm64
+          cd dist/osx-arm64 && zip -r ../../Tshin-Mac-Silicon.zip . *
+
+      - name: 🚀 Upload Assets to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload ${{ github.event.release.tag_name }} Tshin-Windows-x64.zip Tshin-Linux-x64.zip Tshin-Mac-Intel.zip Tshin-Mac-Silicon.zip
