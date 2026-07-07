@@ -1,6 +1,9 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Headless.XUnit;
+using Tshin.Core.Models;
+using Tshin.Core.Utils.Systems;
 using Tshin.ViewModels;
 using Xunit;
 
@@ -157,5 +160,100 @@ public class PlayerViewModelTests
         var lone = editor.CreateNodeAt(0, 0);
         var player = new PlayerViewModel(lone, editor.Entities, () => { });
         Assert.True(player.IsEnd);
+    }
+
+    // ── Condition false behavior ──────────────────────────────────────────
+
+    /// <summary>
+    /// Builds a graph with a single choice that has a failing condition
+    /// (Gold >= 50, but Gold=10) and a command.
+    /// </summary>
+    private static (EditorViewModel editor, NodeViewModel node,
+                    ChoiceViewModel choice, NumberComponentViewModel comp)
+        BuildConditionGraph(double goldValue)
+    {
+        var editor = TestFactory.Editor();
+        var node = editor.CreateNodeAt(0, 0);
+        var entity = editor.CreateEntityAt(0, 100);
+        editor.AddComponentToEntity(entity, "number");
+        var comp = (NumberComponentViewModel)entity.Components[0];
+        comp.Name = "Gold";
+        comp.Value = goldValue;
+        comp.MaxValue = 999;
+
+        var choice = TestFactory.AddChoice(editor, node);
+        choice.Condition = new AtomicConditionNode
+        {
+            EntityId = entity.Id,
+            ComponentId = "Gold",
+            Operator = ">=",
+            TargetValue = "50"
+        };
+        var cmd = TestFactory.AddCommand(editor, choice);
+        cmd.TargetEntity = entity;
+        cmd.SelectedComponent = comp;
+        cmd.NumberValue = 99;
+
+        return (editor, node, choice, comp);
+    }
+
+    [AvaloniaFact]
+    public void Close_behavior_blocks_choice_when_condition_false()
+    {
+        var (editor, node, choice, editorComp) = BuildConditionGraph(goldValue: 10);
+        choice.ConditionFalseBehavior = ConditionFalseBehavior.Close;
+
+        var player = new PlayerViewModel(node, editor.Entities, () => { });
+        player.ChooseCommand.Execute(choice);
+
+        // Command should NOT have run (Gold stays at 10, not increased)
+        var playComp = (NumberComponentViewModel)player.PlayEntities[0].Components[0];
+        Assert.Equal(10, playComp.Value);
+        // Author data also untouched
+        Assert.Equal(10, editorComp.Value);
+    }
+
+    [AvaloniaFact]
+    public void Hide_behavior_blocks_choice_when_condition_false()
+    {
+        var (editor, node, choice, editorComp) = BuildConditionGraph(goldValue: 10);
+        choice.ConditionFalseBehavior = ConditionFalseBehavior.Hide;
+
+        var player = new PlayerViewModel(node, editor.Entities, () => { });
+        player.ChooseCommand.Execute(choice);
+
+        var playComp = (NumberComponentViewModel)player.PlayEntities[0].Components[0];
+        Assert.Equal(10, playComp.Value);
+    }
+
+    [AvaloniaFact]
+    public void Close_behavior_allows_choice_when_condition_true()
+    {
+        var (editor, node, choice, editorComp) = BuildConditionGraph(goldValue: 100);
+        choice.ConditionFalseBehavior = ConditionFalseBehavior.Close;
+
+        var player = new PlayerViewModel(node, editor.Entities, () => { });
+        player.ChooseCommand.Execute(choice);
+
+        // Command DID run (Gold 100 → 99 via Set)
+        var playComp = (NumberComponentViewModel)player.PlayEntities[0].Components[0];
+        Assert.Equal(99, playComp.Value);
+        // Author data still untouched
+        Assert.Equal(100, editorComp.Value);
+    }
+
+    [AvaloniaFact]
+    public void No_condition_executes_regardless_of_false_behavior()
+    {
+        var (editor, node, choice, _) = BuildConditionGraph(goldValue: 10);
+        choice.Condition = null;               // no gating condition
+        choice.ConditionFalseBehavior = ConditionFalseBehavior.Close;
+
+        var player = new PlayerViewModel(node, editor.Entities, () => { });
+        player.ChooseCommand.Execute(choice);
+
+        // Command ran even though condition was nulled
+        var playComp = (NumberComponentViewModel)player.PlayEntities[0].Components[0];
+        Assert.Equal(99, playComp.Value); // 10 → 99 via Set command
     }
 }

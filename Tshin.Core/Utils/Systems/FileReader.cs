@@ -176,6 +176,16 @@ public static class FileReader
                     if (condition is not null)
                         lastCreatedChoice.Condition = condition;
                 }
+                // 3b. Process if_false behavior inside choice blocks
+                else if (insideChoiceBlock && lastCreatedChoice != null && key == "if_false")
+                {
+                    var behavior = valuePart.Trim().ToLower();
+                    lastCreatedChoice.ConditionFalseBehavior = behavior switch
+                    {
+                        "hide" => ConditionFalseBehavior.Hide,
+                        _ => ConditionFalseBehavior.Close
+                    };
+                }
                 // 4. Process Action Commands inside localized bracket contexts (set, increase, reduce)
                 else if (insideChoiceBlock && lastCreatedChoice != null && ContainsActionVerb(line, out var verbStr))
                 {
