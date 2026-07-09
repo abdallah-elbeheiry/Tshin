@@ -169,10 +169,10 @@ public static class TextBoxCompletionBehavior
         private void PositionPopupAtCaret()
         {
             var text = TextBox.Text ?? string.Empty;
-            var caretPos = TextBox.CaretIndex;
+            var caretPos = Math.Min(TextBox.CaretIndex, text.Length);
 
             // Count newlines before the caret to determine the line index
-            var textBeforeCaret = caretPos <= text.Length ? text[..caretPos] : text;
+            var textBeforeCaret = text[..caretPos];
             var lineIndex = 0;
             var col = 0;
             for (var i = textBeforeCaret.Length - 1; i >= 0; i--)
@@ -249,15 +249,30 @@ public static class TextBoxCompletionBehavior
         {
             var text = TextBox.Text ?? string.Empty;
             var caretPos = TextBox.CaretIndex;
+            if (caretPos > text.Length) return;
 
-            var openBrace = text.LastIndexOf('{', Math.Max(0, caretPos - 1));
-            if (openBrace == -1)
+            // Walk backwards from the character just before the caret to find
+            // an opening brace.  This avoids picking up a brace that's at or
+            // past the caret position.
+            var searchStart = Math.Max(0, caretPos - 1);
+            var openBrace = text.LastIndexOf('{', searchStart);
+            if (openBrace == -1 || caretPos <= openBrace)
             {
                 Popup.IsOpen = false;
                 return;
             }
 
-            var closeBrace = text.IndexOf('}', openBrace, caretPos - openBrace);
+            // Make sure we're not inside a completed {...} block
+            var spanLen = caretPos - openBrace;
+            if (spanLen > text.Length - openBrace)
+                spanLen = text.Length - openBrace;
+            if (spanLen <= 0)
+            {
+                Popup.IsOpen = false;
+                return;
+            }
+
+            var closeBrace = text.IndexOf('}', openBrace, spanLen);
             if (closeBrace != -1)
             {
                 Popup.IsOpen = false;
@@ -306,7 +321,6 @@ public static class TextBoxCompletionBehavior
                 var matches = Source!
                     .Select(e => e.EntityName)
                     .Where(n => n.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
                     .Take(20)
                     .ToList();
 
@@ -343,16 +357,18 @@ public static class TextBoxCompletionBehavior
             if (_openBracePos < 0) return;
 
             var text = TextBox.Text ?? string.Empty;
-            var caretPos = TextBox.CaretIndex;
+            var caretPos = Math.Min(TextBox.CaretIndex, text.Length);
+            if (_openBracePos >= text.Length) return;
 
             if (_inEntityStage)
             {
-                var entityName = Source
-                    .First(e => e.EntityName.Equals(selected, StringComparison.OrdinalIgnoreCase))
-                    .EntityName;
+                var matched = Source
+                    .FirstOrDefault(e => e.EntityName.Equals(selected, StringComparison.OrdinalIgnoreCase));
+                if (matched is null) return;
+                var entityName = matched.EntityName;
 
                 var prefix = text[..(_openBracePos + 1)];
-                var suffix = text[caretPos..];
+                var suffix = caretPos < text.Length ? text[caretPos..] : string.Empty;
 
                 TextBox.Text = prefix + entityName + "." + suffix;
                 var newCaret = prefix.Length + entityName.Length + 1;
@@ -369,7 +385,7 @@ public static class TextBoxCompletionBehavior
             {
                 var value = "{" + _selectedEntityName + "." + selected + "}";
                 var prefix = text[.._openBracePos];
-                var suffix = text[caretPos..];
+                var suffix = caretPos < text.Length ? text[caretPos..] : string.Empty;
 
                 TextBox.Text = prefix + value + suffix;
                 var newCaret = prefix.Length + value.Length;
