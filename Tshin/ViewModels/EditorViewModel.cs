@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Tshin.Behaviors;
 using Tshin.Models;
 using Tshin.Services;
 
@@ -107,8 +108,12 @@ public partial class EditorViewModel : ViewModelBase
         Nodes.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasNodes));
         BuildFrom(snapshot);
 
-        // When entities change, refresh AvailableEntities on all choices
-        Entities.CollectionChanged += (_, _) => RefreshAvailableEntitiesOnChoices();
+        // When entities change, refresh AvailableEntities on all choices and completion map
+        Entities.CollectionChanged += (_, _) =>
+        {
+            RefreshAvailableEntitiesOnChoices();
+            InvalidateCompletionMap();
+        };
     }
 
     /// <summary>Snaps a world coordinate to the grid when snapping is enabled.</summary>
@@ -205,6 +210,30 @@ public partial class EditorViewModel : ViewModelBase
         };
     }
 
+    /// <summary>
+    /// Builds the hierarchical data used by the two-stage variable auto-complete.
+    /// Stage 1 lists entity names (typed after <c>{</c>); stage 2 lists component
+    /// names for the selected entity (typed after the dot).
+    /// </summary>
+    public List<EntityCompletionEntry> EntityCompletionSource
+    {
+        get
+        {
+            return Entities.Select(e => new EntityCompletionEntry
+            {
+                EntityName = e.Name,
+                EntityId = e.Id,
+                ComponentNames = e.Components.Select(c => c.Name).ToList()
+            }).ToList();
+        }
+    }
+
+    /// <summary>Notifies auto-complete bindings that the entity/component map may have changed.</summary>
+    private void InvalidateCompletionMap()
+    {
+        OnPropertyChanged(nameof(EntityCompletionSource));
+    }
+
     // ---- entity editing API -------------------------------------------------
 
     public EntityViewModel CreateEntityAt(double worldX, double worldY)
@@ -212,8 +241,14 @@ public partial class EditorViewModel : ViewModelBase
         var id = Guid.NewGuid().ToString("D");
         var name = $"entity_{++_newEntityCounter}";
         var evm = new EntityViewModel(id, name, worldX, worldY, MarkDirty);
+        evm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(EntityViewModel.Name))
+                InvalidateCompletionMap();
+        };
         Entities.Add(evm);
         RefreshAvailableEntitiesOnChoices();
+        InvalidateCompletionMap();
         MarkDirty();
         return evm;
     }
@@ -228,6 +263,7 @@ public partial class EditorViewModel : ViewModelBase
             _ => throw new ArgumentException($"Unknown component type: {componentType}")
         };
         entity.Components.Add(comp);
+        InvalidateCompletionMap();
         MarkDirty();
     }
 
@@ -235,6 +271,7 @@ public partial class EditorViewModel : ViewModelBase
     {
         entity.Components.Remove(component);
         if (SelectedComponent == component) SelectedComponent = null;
+        InvalidateCompletionMap();
         MarkDirty();
     }
 

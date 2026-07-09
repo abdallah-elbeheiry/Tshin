@@ -1,8 +1,10 @@
 using System.Linq;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Tshin.Behaviors;
 using Tshin.Services;
 using Tshin.ViewModels;
 using Tshin.Views;
@@ -71,16 +73,26 @@ public class UiRenderingTests
         window.Show();
         Pump();
 
-        var texts = window.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
-        Assert.Contains("Once upon a time", texts);
-        Assert.Contains("Entities", texts); // the collapsible panel header
-        Assert.Contains("Hero", texts);     // entity listed in the panel
+        Pump();
+        Pump();
 
-        // The choice button is present and clickable.
-        var choiceButton = window.GetVisualDescendants()
-            .OfType<Button>()
-            .FirstOrDefault(b => (b.Content as string) == "Continue");
-        Assert.NotNull(choiceButton);
+        // All static label text (Entities, Hero, etc.) is still plain TextBlock.Text.
+        var texts = window.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
+        Assert.Contains("Entities", texts);
+        Assert.Contains("Hero", texts);
+
+        // The story text is rendered via the BbCodeText attached property.
+        // Check that the attached property value was set by the binding.
+        var storyBlock = window.GetVisualDescendants()
+            .OfType<TextBlock>()
+            .FirstOrDefault(t => BbCodeProperties.GetBbCodeText(t) == "Once upon a time");
+        Assert.NotNull(storyBlock);
+
+        // The choice button contains a TextBlock with the choice text via BBCode.
+        var choiceText = window.GetVisualDescendants()
+            .OfType<TextBlock>()
+            .FirstOrDefault(t => t.Inlines?.OfType<Run>().Any(r => r.Text == "Continue") == true);
+        Assert.NotNull(choiceText);
 
         window.Close();
     }

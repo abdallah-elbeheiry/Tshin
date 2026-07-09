@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Tshin.Core.Models;
 using Tshin.Core.Utils.Managers;
+using Tshin.Utilities;
 
 namespace Tshin.ViewModels;
 
@@ -27,6 +28,22 @@ public partial class PlayerViewModel : ViewModelBase
 
     [ObservableProperty]
     private NodeViewModel? _currentNode;
+
+    /// <summary>The raw display text of the current node, before interpolation.</summary>
+    public string CurrentNodeDisplayTextRaw => CurrentNode?.DisplayText ?? string.Empty;
+
+    /// <summary>
+    /// The current node's display text with <c>{UUID.Component}</c> tokens resolved
+    /// against the live play-state entity manager.
+    /// </summary>
+    public string CurrentNodeDisplayTextResolved
+    {
+        get
+        {
+            var em = BuildEntityManagerFromPlayEntities();
+            return VariableInterpolator.Interpolate(CurrentNode?.DisplayText, em);
+        }
+    }
 
     /// <summary>
     /// The choices offered on the current node, projected for play: each carries whether
@@ -87,7 +104,8 @@ public partial class PlayerViewModel : ViewModelBase
             var openable = condition is null || condition.Evaluate(em);
             if (!openable && choice.ConditionFalseBehavior == ConditionFalseBehavior.Hide)
                 continue;
-            CurrentChoices.Add(new PlayChoiceViewModel(choice, openable));
+            var resolved = VariableInterpolator.Interpolate(choice.DisplayText, em);
+            CurrentChoices.Add(new PlayChoiceViewModel(choice, openable, resolved));
         }
     }
 
@@ -137,6 +155,8 @@ public partial class PlayerViewModel : ViewModelBase
     partial void OnCurrentNodeChanged(NodeViewModel? value)
     {
         OnPropertyChanged(nameof(IsEnd));
+        OnPropertyChanged(nameof(CurrentNodeDisplayTextRaw));
+        OnPropertyChanged(nameof(CurrentNodeDisplayTextResolved));
         RefreshChoices();
     }
 
@@ -162,8 +182,11 @@ public partial class PlayerViewModel : ViewModelBase
         if (choice.Target is { } target)
             CurrentNode = target;
         else
-            // Same-node re-evaluation: commands may have changed which choices are openable.
+        {
+            // Same-node re-evaluation: commands may have changed values.
+            OnPropertyChanged(nameof(CurrentNodeDisplayTextResolved));
             RefreshChoices();
+        }
     }
 
     /// <summary>
@@ -262,12 +285,20 @@ public partial class PlayChoiceViewModel : ViewModelBase
 
     public string DisplayText => Choice.DisplayText;
 
+    /// <summary>
+    /// The <c>{UUID.Component}</c>-resolved text for this choice. Updated on each
+    /// choice rebuild so the UI shows live values after command mutations.
+    /// </summary>
+    [ObservableProperty]
+    private string _resolvedDisplayText;
+
     [ObservableProperty]
     private bool _isOpenable;
 
-    public PlayChoiceViewModel(ChoiceViewModel choice, bool isOpenable)
+    public PlayChoiceViewModel(ChoiceViewModel choice, bool isOpenable, string resolvedDisplayText)
     {
         Choice = choice;
         _isOpenable = isOpenable;
+        _resolvedDisplayText = resolvedDisplayText;
     }
 }

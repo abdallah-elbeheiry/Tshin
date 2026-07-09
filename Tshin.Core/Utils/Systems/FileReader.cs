@@ -40,7 +40,7 @@ public static class FileReader
         for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
         {
             var rawLine = lines[lineIndex];
-            var lineWithoutComments = rawLine.Split('#')[0];
+            var lineWithoutComments = StripComments(rawLine);
             var line = lineWithoutComments.Trim();
             
             if (string.IsNullOrEmpty(line)) continue;
@@ -424,6 +424,25 @@ public static class FileReader
 
     #region String Utilities
 
+    /// <summary>
+    /// Strips everything from the first unquoted <c>#</c> to the end of the line,
+    /// preserving <c>#</c> characters that appear inside double-quoted strings.
+    /// This prevents hex colours (e.g. <c>"[color=#FF0000]"</c>) from being
+    /// truncated by the comment-stripping logic.
+    /// </summary>
+    private static string StripComments(string line)
+    {
+        var inQuotes = false;
+        for (var i = 0; i < line.Length; i++)
+        {
+            if (line[i] == '"')
+                inQuotes = !inQuotes;
+            else if (line[i] == '#' && !inQuotes)
+                return line[..i];
+        }
+        return line;
+    }
+
     private static string ExtractBetweenQuotes(string input)
     {
         var firstQuote = -1;
@@ -608,7 +627,7 @@ public static class FileReader
         while (depth > 0 && lineIndex + 1 < lines.Length)
         {
             lineIndex++;
-            var nextLine = lines[lineIndex].Split('#')[0];
+            var nextLine = StripComments(lines[lineIndex]);
             aggregated.Append('\n').Append(nextLine);
 
             foreach (var c in nextLine)

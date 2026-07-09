@@ -57,6 +57,17 @@
         <Setter Property="TextElement.Foreground" Value="White" />
     </Style>
 
+    <!-- Text-editor buttons — no hover effect -->
+    <Style Selector="Button.text-editor-button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Width" Value="26" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
     <!-- Square icon buttons (✕, ⚙, eye) — subtle shade at rest -->
     <Style Selector="Button.icon">
         <Setter Property="Background" Value="#18FFFFFF" />
@@ -141,6 +152,11 @@
         <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
         <Setter Property="SelectionBrush" Value="{StaticResource AccentBrush}" />
     </Style>
+    <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
     <Style Selector="TextBox:focus">
         <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
     </Style>
@@ -184,6 +200,27 @@
         <Setter Property="Background" Value="{StaticResource CardBgBrush}" />
     </Style>
     <Style Selector="ListBox.sidebar ListBoxItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+    </Style>
+
+    <!-- ============ Completion popup (variable intellisense) ============ -->
+    <Style Selector="ListBox.completion">
+        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource ControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+    </Style>
+    <Style Selector="ListBox.completion ListBoxItem">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="ListBox.completion ListBoxItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource CardBgHoverBrush}" />
+    </Style>
+    <Style Selector="ListBox.completion ListBoxItem:selected /template/ ContentPresenter">
         <Setter Property="Background" Value="{StaticResource AccentBrush}" />
     </Style>
 
