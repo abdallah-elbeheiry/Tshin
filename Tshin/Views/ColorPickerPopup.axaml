@@ -1,0 +1,42 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Tshin.Views.ColorPickerPopup"
+        Title="Select Color"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Width="340">
+    <StackPanel Margin="16" Spacing="10">
+        <TextBlock Text="Pick a color" FontSize="13" FontWeight="SemiBold" />
+
+        <Border x:Name="PreviewSwatch" Height="36" CornerRadius="6"
+                BorderBrush="#444" BorderThickness="1" />
+
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="6">
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="H" VerticalAlignment="Center" FontSize="12" />
+            <Slider Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="360" Value="0"
+                    x:Name="HueSlider" Orientation="Horizontal" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="S" VerticalAlignment="Center" FontSize="12" />
+            <Slider Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100" Value="0"
+                    x:Name="SaturationSlider" Orientation="Horizontal" />
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="V" VerticalAlignment="Center" FontSize="12" />
+            <Slider Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Value="100"
+                    x:Name="BrightnessSlider" Orientation="Horizontal" />
+        </Grid>
+
+        <TextBox x:Name="HexInput" PlaceholderText="#AARRGGBB"
+                 FontSize="12" Text="" />
+
+        <TextBlock Text="Quick swatches" FontSize="11" Foreground="#888" />
+        <WrapPanel x:Name="SwatchPanel" />
+
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <Button Grid.Column="1" Content="Cancel" Width="70"
+                    Click="OnCancelClick" />
+            <Button Grid.Column="2" Content="Apply" Width="70"
+                    Classes="accent" Click="OnApplyClick" />
+        </Grid>
+    </StackPanel>
+</Window>

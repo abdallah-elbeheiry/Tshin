@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Tshin.ViewModels"
+        xmlns:behaviors="clr-namespace:Tshin.Behaviors"
         x:Class="Tshin.Views.PlayerWindow"
         x:DataType="vm:PlayerViewModel"
         Title="Tshin — Play"
@@ -12,10 +13,12 @@
     <Grid ColumnDefinitions="*,Auto">
         <!-- Story area -->
         <Border Grid.Column="0" Margin="24" Background="{StaticResource CardBgBrush}"
-                CornerRadius="14" Padding="28" BoxShadow="0 8 32 0 #60000000">
-            <DockPanel>
-                <!-- Story text -->
-                <TextBlock DockPanel.Dock="Top" Text="{Binding CurrentNode.DisplayText}"
+                CornerRadius="14" BoxShadow="0 8 32 0 #60000000">
+            <ScrollViewer Padding="28">
+                <DockPanel>
+                <!-- Story text (rich BBCode + variable interpolation) -->
+                <TextBlock DockPanel.Dock="Top"
+                           behaviors:BbCodeProperties.BbCodeText="{Binding CurrentNodeDisplayTextResolved}"
                            FontSize="20" TextWrapping="Wrap" TextAlignment="Center"
                            Foreground="{StaticResource TextPrimaryBrush}"
                            Margin="0,0,0,24" />
@@ -38,17 +41,19 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:PlayChoiceViewModel">
-                            <Button Content="{Binding DisplayText}"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Center"
+                            <Button HorizontalAlignment="Stretch"
                                     Padding="14" FontSize="15"
                                     IsEnabled="{Binding IsOpenable}"
                                     Command="{Binding $parent[ItemsControl].((vm:PlayerViewModel)DataContext).ChooseCommand}"
-                                    CommandParameter="{Binding Choice}" />
+                                    CommandParameter="{Binding Choice}">
+                                <TextBlock behaviors:BbCodeProperties.BbCodeText="{Binding ResolvedDisplayText}"
+                                           TextWrapping="Wrap" TextAlignment="Center" />
+                            </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </DockPanel>
+        </ScrollViewer>
         </Border>
 
         <!-- Entities panel (collapsible) -->

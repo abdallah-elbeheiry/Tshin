@@ -405,6 +405,25 @@ public partial class EditorView : UserControl
         }
     }
 
+    // ---- open full-screen text editor ---------------------------------------
+
+    private async void OnOpenTextEditor(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Parent: Grid grid } && Vm is { } vm)
+        {
+            var textBox = grid.Children.OfType<TextBox>().FirstOrDefault();
+            if (textBox is null) return;
+
+            var window = new TextEditorWindow("Text Editor", textBox.Text ?? "", vm.Entities);
+            var parentWindow = TopLevel.GetTopLevel(this) as Window;
+            if (parentWindow is null) return;
+
+            var result = await window.ShowDialog<string?>(parentWindow);
+            if (result is not null)
+                textBox.Text = result;
+        }
+    }
+
     // ---- inspector resize ---------------------------------------------------
 
     private void OnInspectorResize(object? sender, VectorEventArgs e)
