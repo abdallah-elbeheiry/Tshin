@@ -1,8 +1,11 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Tshin.ViewModels;
 
@@ -13,6 +16,14 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        try
+        {
+            var uri = new Uri("avares://Tshin/Assets/Tshiner fox.png");
+            using var stream = AssetLoader.Open(uri);
+            Icon = new WindowIcon(new Bitmap(stream));
+        }
+        catch { /* fall back to default icon */ }
 
         DataContextChanged += (_, _) =>
         {
