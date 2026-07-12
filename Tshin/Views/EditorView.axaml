@@ -136,7 +136,7 @@
                     <Button Classes="ghost">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <TextBlock Text="Add" VerticalAlignment="Center" />
-                            <Path Classes="glyph" Width="9" Height="9" VerticalAlignment="Center"
+                            <Path Classes="glyph" MaxWidth="9" MaxHeight="9" VerticalAlignment="Center"
                                   Data="{StaticResource ChevronDownIcon}" />
                         </StackPanel>
                         <Button.Flyout>

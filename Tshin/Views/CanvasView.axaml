@@ -14,8 +14,11 @@
     <!-- The node canvas keeps a fixed dark identity on every platform and in either OS theme;
          only the surrounding chrome, toolbar, and inspector follow the system theme. -->
     <ThemeVariantScope RequestedThemeVariant="Dark">
-        <!-- Viewport: receives pan / zoom / background interactions -->
-        <Border x:Name="Viewport" Background="{DynamicResource CanvasBgBrush}" ClipToBounds="True"
+        <!-- Viewport: receives pan / zoom / background interactions. The dot-grid
+             VisualBrush is painted entirely in code (UpdateGridBackground); no XAML
+             background, so a late DynamicResource re-resolve under the ThemeVariantScope
+             can't clobber it (which left the grid blank until the first interaction). -->
+        <Border x:Name="Viewport" ClipToBounds="True"
                 PointerPressed="OnViewportPressed" PointerMoved="OnViewportMoved"
                 PointerReleased="OnViewportReleased" PointerWheelChanged="OnViewportWheel">
             <Border.ContextMenu>

@@ -86,10 +86,14 @@
     <!-- ============ Vector glyphs hosted inside buttons ============ -->
     <!-- A Path with Classes="glyph" replaces pixel-font characters (✕ ⚙ − +) so icons render
          crisply and follow the button's state colouring like the old text glyphs did. -->
+    <!-- Fit within a 13x13 box but let the Path size to the SCALED geometry, not the box:
+         a Uniform Shape pins its geometry top-left inside a fixed square, which parks a
+         short glyph (like the minus bar) at the top. Bounding via MaxWidth/MaxHeight keeps
+         the Path's own size equal to the glyph so centre-alignment actually centres it. -->
     <Style Selector="Path.glyph">
         <Setter Property="Stretch" Value="Uniform" />
-        <Setter Property="Width" Value="13" />
-        <Setter Property="Height" Value="13" />
+        <Setter Property="MaxWidth" Value="13" />
+        <Setter Property="MaxHeight" Value="13" />
         <Setter Property="Fill" Value="{DynamicResource TextSecondaryBrush}" />
         <Setter Property="HorizontalAlignment" Value="Center" />
         <Setter Property="VerticalAlignment" Value="Center" />
