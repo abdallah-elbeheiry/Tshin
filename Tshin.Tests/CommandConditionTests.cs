@@ -45,7 +45,7 @@ public class CommandConditionTests
     {
         var (editor, _, _, cmd) = BuildWithCommand();
 
-        editor.AddConditionToCommandCommand.Execute(cmd);
+        cmd.AddConditionCommand.Execute(null);
 
         Assert.True(cmd.HasCondition);
         var group = Assert.IsType<LogicalGroupViewModel>(cmd.ConditionRoot);
@@ -57,9 +57,9 @@ public class CommandConditionTests
     public void Remove_condition_clears_it()
     {
         var (editor, _, _, cmd) = BuildWithCommand();
-        editor.AddConditionToCommandCommand.Execute(cmd);
+        cmd.AddConditionCommand.Execute(null);
 
-        editor.RemoveConditionFromCommandCommand.Execute(cmd);
+        cmd.RemoveConditionSelfCommand.Execute(null);
 
         Assert.False(cmd.HasCondition);
         Assert.Null(cmd.ConditionRoot);
@@ -69,10 +69,10 @@ public class CommandConditionTests
     public void Removing_the_last_node_clears_the_command_condition()
     {
         var (editor, _, _, cmd) = BuildWithCommand();
-        editor.AddConditionToCommandCommand.Execute(cmd);
+        cmd.AddConditionCommand.Execute(null);
         var atomic = ((LogicalGroupViewModel)cmd.ConditionRoot!).Children[0];
 
-        editor.RemoveConditionNodeCommand.Execute(atomic);
+        atomic.RemoveSelfCommand.Execute(null);
 
         Assert.False(cmd.HasCondition);
         Assert.Null(cmd.ConditionRoot);
@@ -82,13 +82,13 @@ public class CommandConditionTests
     public void Removing_a_nested_group_keeps_the_command_condition_root()
     {
         var (editor, _, _, cmd) = BuildWithCommand();
-        editor.AddConditionToCommandCommand.Execute(cmd);
+        cmd.AddConditionCommand.Execute(null);
         var group = (LogicalGroupViewModel)cmd.ConditionRoot!;
 
-        editor.AddGroupToGroupCommand.Execute(group);
+        group.AddGroupCommand.Execute(null);
         var nested = Assert.IsType<LogicalGroupViewModel>(group.Children[1]);
 
-        editor.RemoveConditionNodeCommand.Execute(nested);
+        nested.RemoveSelfCommand.Execute(null);
 
         Assert.True(cmd.HasCondition);   // root atomic remains
         Assert.Single(group.Children);

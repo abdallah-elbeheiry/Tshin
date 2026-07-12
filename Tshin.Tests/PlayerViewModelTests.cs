@@ -42,7 +42,7 @@ public class PlayerViewModelTests
     public void Choosing_a_linked_choice_runs_commands_then_navigates()
     {
         var (editor, n1, n2, choice, editorComp) = BuildGraph();
-        var player = new PlayerViewModel(n1, editor.Entities, () => { });
+        var player = new PlayerViewModel(n1, editor.Entities);
 
         player.ChooseCommand.Execute(choice);
 
@@ -59,7 +59,7 @@ public class PlayerViewModelTests
     public void Targetless_choice_runs_commands_but_stays_on_the_same_node()
     {
         var (editor, n1, _, choice, _) = BuildGraph(linkChoice: false);
-        var player = new PlayerViewModel(n1, editor.Entities, () => { });
+        var player = new PlayerViewModel(n1, editor.Entities);
 
         player.ChooseCommand.Execute(choice);
 
@@ -75,7 +75,7 @@ public class PlayerViewModelTests
         var cmd = choice.Commands[0];
         cmd.NumberValue = 1000; // 10 + 1000, clamped to max 100
 
-        var player = new PlayerViewModel(n1, editor.Entities, () => { });
+        var player = new PlayerViewModel(n1, editor.Entities);
         player.ChooseCommand.Execute(choice);
 
         var playComp = (NumberComponentViewModel)player.PlayEntities[0].Components[0];
@@ -86,7 +86,7 @@ public class PlayerViewModelTests
     public void Command_mutation_updates_display_value()
     {
         var (editor, n1, _, choice, _) = BuildGraph(linkChoice: false);
-        var player = new PlayerViewModel(n1, editor.Entities, () => { });
+        var player = new PlayerViewModel(n1, editor.Entities);
 
         player.ChooseCommand.Execute(choice);
 
@@ -103,7 +103,7 @@ public class PlayerViewModelTests
         var hidden = editor.CreateEntityAt(0, 200);
         hidden.Visible = false;
 
-        var player = new PlayerViewModel(start, editor.Entities, () => { });
+        var player = new PlayerViewModel(start, editor.Entities);
 
         Assert.True(player.HasVisibleEntities);
         Assert.Single(player.VisiblePlayEntities);
@@ -118,7 +118,7 @@ public class PlayerViewModelTests
         var e = editor.CreateEntityAt(0, 100);
         e.Visible = false;
 
-        var player = new PlayerViewModel(start, editor.Entities, () => { });
+        var player = new PlayerViewModel(start, editor.Entities);
 
         Assert.False(player.HasVisibleEntities);
         Assert.Empty(player.VisiblePlayEntities);
@@ -129,7 +129,7 @@ public class PlayerViewModelTests
     {
         var editor = TestFactory.Editor();
         var start = editor.CreateNodeAt(0, 0);
-        var player = new PlayerViewModel(start, editor.Entities, () => { });
+        var player = new PlayerViewModel(start, editor.Entities);
 
         Assert.True(player.IsEntitiesPanelExpanded);
         var open = player.EntitiesToggleGlyph;
@@ -144,7 +144,7 @@ public class PlayerViewModelTests
     public void Restart_returns_to_the_start_node()
     {
         var (editor, n1, n2, choice, _) = BuildGraph();
-        var player = new PlayerViewModel(n1, editor.Entities, () => { });
+        var player = new PlayerViewModel(n1, editor.Entities);
         player.ChooseCommand.Execute(choice);
         Assert.Same(n2, player.CurrentNode);
 
@@ -158,7 +158,7 @@ public class PlayerViewModelTests
     {
         var editor = TestFactory.Editor();
         var lone = editor.CreateNodeAt(0, 0);
-        var player = new PlayerViewModel(lone, editor.Entities, () => { });
+        var player = new PlayerViewModel(lone, editor.Entities);
         Assert.True(player.IsEnd);
     }
 
@@ -203,7 +203,7 @@ public class PlayerViewModelTests
         var (editor, node, choice, editorComp) = BuildConditionGraph(goldValue: 10);
         choice.ConditionFalseBehavior = ConditionFalseBehavior.Close;
 
-        var player = new PlayerViewModel(node, editor.Entities, () => { });
+        var player = new PlayerViewModel(node, editor.Entities);
         player.ChooseCommand.Execute(choice);
 
         // Command should NOT have run (Gold stays at 10, not increased)
@@ -219,7 +219,7 @@ public class PlayerViewModelTests
         var (editor, node, choice, editorComp) = BuildConditionGraph(goldValue: 10);
         choice.ConditionFalseBehavior = ConditionFalseBehavior.Hide;
 
-        var player = new PlayerViewModel(node, editor.Entities, () => { });
+        var player = new PlayerViewModel(node, editor.Entities);
         player.ChooseCommand.Execute(choice);
 
         var playComp = (NumberComponentViewModel)player.PlayEntities[0].Components[0];
@@ -232,7 +232,7 @@ public class PlayerViewModelTests
         var (editor, node, choice, editorComp) = BuildConditionGraph(goldValue: 100);
         choice.ConditionFalseBehavior = ConditionFalseBehavior.Close;
 
-        var player = new PlayerViewModel(node, editor.Entities, () => { });
+        var player = new PlayerViewModel(node, editor.Entities);
         player.ChooseCommand.Execute(choice);
 
         // Command DID run (Gold 100 → 99 via Set)
@@ -249,7 +249,7 @@ public class PlayerViewModelTests
         choice.Condition = null;               // no gating condition
         choice.ConditionFalseBehavior = ConditionFalseBehavior.Close;
 
-        var player = new PlayerViewModel(node, editor.Entities, () => { });
+        var player = new PlayerViewModel(node, editor.Entities);
         player.ChooseCommand.Execute(choice);
 
         // Command ran even though condition was nulled

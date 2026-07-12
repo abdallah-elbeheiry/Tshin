@@ -15,7 +15,7 @@ public class NodeLayoutTests
     [InlineData(5)]
     public void NodeHeight_matches_the_previous_inline_formula(int choiceCount)
     {
-        var node = new NodeViewModel("n", "text", 0, 0, () => { });
+        var node = new NodeViewModel("n", "text", 0, 0, NullEditorContext.Instance);
         for (var i = 0; i < choiceCount; i++)
             node.AddChoice();
 

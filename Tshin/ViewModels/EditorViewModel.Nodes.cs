@@ -5,13 +5,15 @@ namespace Tshin.ViewModels;
 
 /// <summary>
 /// Node/choice/command editing operations (partial of <see cref="EditorViewModel"/>).
+/// Most operate on a child VM and are invoked through <see cref="IEditorContext"/> from the
+/// child's own command; a few keep a generated command for the toolbar/keyboard.
 /// </summary>
 public partial class EditorViewModel
 {
     public NodeViewModel CreateNodeAt(double worldX, double worldY)
     {
         var id = NextNodeId();
-        var node = new NodeViewModel(id, "New node", worldX, worldY, MarkDirty);
+        var node = new NodeViewModel(id, "New node", worldX, worldY, this);
         Nodes.Add(node);
         SelectNode(node);
         MarkDirty();
@@ -27,7 +29,7 @@ public partial class EditorViewModel
     }
 
     [RelayCommand]
-    private void RemoveNode(NodeViewModel? node)
+    public void RemoveNode(NodeViewModel? node)
     {
         node ??= SelectedNode;
         if (node is null) return;
@@ -43,20 +45,18 @@ public partial class EditorViewModel
         MarkDirty();
     }
 
-    [RelayCommand]
-    private void AddChoice(NodeViewModel? node)
+    public void AddChoice(NodeViewModel? node)
     {
         node ??= SelectedNode;
         if (node is null) return;
-        var choice = new ChoiceViewModel("New choice", null, MarkDirty);
+        var choice = new ChoiceViewModel("New choice", null, this);
         choice.AvailableEntities = Entities;
         node.Choices.Add(choice);
         RebuildConnections();
         MarkDirty();
     }
 
-    [RelayCommand]
-    private void RemoveChoice(ChoiceViewModel? choice)
+    public void RemoveChoice(ChoiceViewModel? choice)
     {
         if (choice is null) return;
         var owner = Nodes.FirstOrDefault(n => n.Choices.Contains(choice));
@@ -67,18 +67,16 @@ public partial class EditorViewModel
         MarkDirty();
     }
 
-    [RelayCommand]
-    private void AddCommandToChoice(ChoiceViewModel? choice)
+    public void AddCommandToChoice(ChoiceViewModel? choice)
     {
         if (choice is null) return;
         var cmdVm = new CommandViewModel(
-            null, "", "Set", "", 0, false, Entities, MarkDirty);
+            null, "", "Set", "", 0, false, Entities, this);
         choice.Commands.Add(cmdVm);
         MarkDirty();
     }
 
-    [RelayCommand]
-    private void RemoveCommandFromChoice(CommandViewModel? command)
+    public void RemoveCommandFromChoice(CommandViewModel? command)
     {
         if (command is null) return;
         // Find the choice that owns this command
@@ -97,62 +95,55 @@ public partial class EditorViewModel
 
     // ---- condition editing --------------------------------------------------
 
-    [RelayCommand]
-    private void AddConditionToChoice(ChoiceViewModel? choice)
+    public void AddConditionToChoice(ChoiceViewModel? choice)
     {
         if (choice is null) return;
-        var root = new LogicalGroupViewModel(MarkDirty) { AvailableEntities = Entities };
-        root.AddChild(new AtomicConditionViewModel(null, Entities, MarkDirty));
+        var root = new LogicalGroupViewModel(this) { AvailableEntities = Entities };
+        root.AddChild(new AtomicConditionViewModel(null, Entities, this));
         choice.ConditionRoot = root;
         MarkDirty();
     }
 
-    [RelayCommand]
-    private void RemoveCondition(ChoiceViewModel? choice)
+    public void RemoveCondition(ChoiceViewModel? choice)
     {
         if (choice is null) return;
         choice.ConditionRoot = null;
         MarkDirty();
     }
 
-    [RelayCommand]
-    private void AddConditionToCommand(CommandViewModel? command)
+    public void AddConditionToCommand(CommandViewModel? command)
     {
         if (command is null) return;
-        var root = new LogicalGroupViewModel(MarkDirty) { AvailableEntities = command.AvailableEntities };
-        root.AddChild(new AtomicConditionViewModel(null, command.AvailableEntities, MarkDirty));
+        var root = new LogicalGroupViewModel(this) { AvailableEntities = command.AvailableEntities };
+        root.AddChild(new AtomicConditionViewModel(null, command.AvailableEntities, this));
         command.ConditionRoot = root;
         MarkDirty();
     }
 
-    [RelayCommand]
-    private void RemoveConditionFromCommand(CommandViewModel? command)
+    public void RemoveConditionFromCommand(CommandViewModel? command)
     {
         if (command is null) return;
         command.ConditionRoot = null;
         MarkDirty();
     }
 
-    [RelayCommand]
-    private void AddAtomicToGroup(LogicalGroupViewModel? group)
+    public void AddAtomicToGroup(LogicalGroupViewModel? group)
     {
         if (group is null) return;
-        group.AddChild(new AtomicConditionViewModel(null, group.AvailableEntities ?? Entities, MarkDirty));
+        group.AddChild(new AtomicConditionViewModel(null, group.AvailableEntities ?? Entities, this));
         MarkDirty();
     }
 
-    [RelayCommand]
-    private void AddGroupToGroup(LogicalGroupViewModel? group)
+    public void AddGroupToGroup(LogicalGroupViewModel? group)
     {
         if (group is null) return;
-        var child = new LogicalGroupViewModel(MarkDirty) { AvailableEntities = group.AvailableEntities ?? Entities };
-        child.AddChild(new AtomicConditionViewModel(null, child.AvailableEntities, MarkDirty));
+        var child = new LogicalGroupViewModel(this) { AvailableEntities = group.AvailableEntities ?? Entities };
+        child.AddChild(new AtomicConditionViewModel(null, child.AvailableEntities, this));
         group.AddChild(child);
         MarkDirty();
     }
 
-    [RelayCommand]
-    private void RemoveConditionNode(ConditionNodeViewModel? node)
+    public void RemoveConditionNode(ConditionNodeViewModel? node)
     {
         if (node is null) return;
 

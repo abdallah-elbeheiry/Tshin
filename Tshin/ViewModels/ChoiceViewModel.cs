@@ -1,12 +1,14 @@
 using System;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Tshin.Core.Models;
 
 namespace Tshin.ViewModels;
 
 public partial class ChoiceViewModel : ViewModelBase
 {
+    private readonly IEditorContext _context;
     private readonly Action _onChanged;
 
     [ObservableProperty]
@@ -35,7 +37,7 @@ public partial class ChoiceViewModel : ViewModelBase
         get => ConditionRoot?.BuildModel();
         set => ConditionRoot = value is null
             ? null
-            : ConditionNodeViewModel.FromModel(value, AvailableEntities, _onChanged);
+            : ConditionNodeViewModel.FromModel(value, AvailableEntities, _context);
     }
 
     public bool HasCondition => ConditionRoot is not null;
@@ -65,11 +67,12 @@ public partial class ChoiceViewModel : ViewModelBase
     /// </summary>
     public ObservableCollection<EntityViewModel>? AvailableEntities { get; set; }
 
-    public ChoiceViewModel(string displayText, NodeViewModel? target, Action onChanged)
+    public ChoiceViewModel(string displayText, NodeViewModel? target, IEditorContext context)
     {
         _displayText = displayText;
         _target = target;
-        _onChanged = onChanged;
+        _context = context;
+        _onChanged = context.MarkDirty;
     }
 
     partial void OnDisplayTextChanged(string value) => _onChanged();
@@ -86,4 +89,21 @@ public partial class ChoiceViewModel : ViewModelBase
         OnPropertyChanged(nameof(SelectedFalseBehaviorIndex));
         _onChanged();
     }
+
+    // ── Editor-delegating commands (bound locally by the node/inspector views) ──
+
+    [RelayCommand]
+    private void OpenInspector() => _context.SelectChoice(this);
+
+    [RelayCommand]
+    private void RemoveSelf() => _context.RemoveChoice(this);
+
+    [RelayCommand]
+    private void AddCommand() => _context.AddCommandToChoice(this);
+
+    [RelayCommand]
+    private void AddCondition() => _context.AddConditionToChoice(this);
+
+    [RelayCommand]
+    private void RemoveConditionSelf() => _context.RemoveCondition(this);
 }

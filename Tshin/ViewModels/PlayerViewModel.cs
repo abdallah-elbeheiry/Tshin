@@ -36,22 +36,23 @@ public partial class PlayerViewModel : ViewModelBase
     public ObservableCollection<PlayChoiceViewModel> CurrentChoices { get; } = new();
 
     public PlayerViewModel(NodeViewModel? start,
-                           ObservableCollection<EntityViewModel>? liveEntities,
-                           Action onChanged)
+                           ObservableCollection<EntityViewModel>? liveEntities)
     {
         _start = start;
         _currentNode = start;
         _allNodes = new ObservableCollection<NodeViewModel>();
 
-        // Clone entities so play mode mutations don't affect the editor state
+        // Clone entities so play mode mutations don't affect the editor state. The clones
+        // live outside the editor, so they carry a no-op context.
+        var ctx = NullEditorContext.Instance;
         if (liveEntities is not null)
         {
             foreach (var e in liveEntities)
             {
-                var clone = new EntityViewModel(e.Id, e.Name, e.X, e.Y, onChanged) { Visible = e.Visible };
+                var clone = new EntityViewModel(e.Id, e.Name, e.X, e.Y, ctx) { Visible = e.Visible };
                 foreach (var c in e.Components)
                 {
-                    var compClone = CloneComponent(c, onChanged);
+                    var compClone = CloneComponent(c, ctx);
                     if (compClone is not null)
                         clone.Components.Add(compClone);
                 }
@@ -102,13 +103,13 @@ public partial class PlayerViewModel : ViewModelBase
         }
     }
 
-    private static ComponentViewModel? CloneComponent(ComponentViewModel c, Action onChanged)
+    private static ComponentViewModel? CloneComponent(ComponentViewModel c, IEditorContext context)
     {
         return c switch
         {
-            NumberComponentViewModel n => new NumberComponentViewModel(n.Name, n.Value, n.MinValue, n.MaxValue, onChanged) { Visible = n.Visible },
-            TextComponentViewModel t => new TextComponentViewModel(t.Name, t.Value, onChanged) { Visible = t.Visible },
-            ConditionComponentViewModel cnd => new ConditionComponentViewModel(cnd.Name, cnd.Value, onChanged) { Visible = cnd.Visible },
+            NumberComponentViewModel n => new NumberComponentViewModel(n.Name, n.Value, n.MinValue, n.MaxValue, context) { Visible = n.Visible },
+            TextComponentViewModel t => new TextComponentViewModel(t.Name, t.Value, context) { Visible = t.Visible },
+            ConditionComponentViewModel cnd => new ConditionComponentViewModel(cnd.Name, cnd.Value, context) { Visible = cnd.Visible },
             _ => null
         };
     }

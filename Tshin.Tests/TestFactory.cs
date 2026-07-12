@@ -15,14 +15,14 @@ internal static class TestFactory
     /// <summary>Adds a choice to a node and returns it.</summary>
     public static ChoiceViewModel AddChoice(EditorViewModel editor, NodeViewModel node)
     {
-        editor.AddChoiceCommand.Execute(node);
+        editor.AddChoice(node);
         return node.Choices[^1];
     }
 
     /// <summary>Adds a command to a choice and returns it.</summary>
     public static CommandViewModel AddCommand(EditorViewModel editor, ChoiceViewModel choice)
     {
-        editor.AddCommandToChoiceCommand.Execute(choice);
+        editor.AddCommandToChoice(choice);
         return choice.Commands[^1];
     }
 

@@ -1,11 +1,13 @@
 using System;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Tshin.ViewModels;
 
 public partial class NodeViewModel : ViewModelBase
 {
+    private readonly IEditorContext _context;
     private readonly Action _onChanged;
 
     [ObservableProperty]
@@ -30,13 +32,14 @@ public partial class NodeViewModel : ViewModelBase
 
     public ObservableCollection<ChoiceViewModel> Choices { get; } = new();
 
-    public NodeViewModel(string id, string displayText, double x, double y, Action onChanged)
+    public NodeViewModel(string id, string displayText, double x, double y, IEditorContext context)
     {
         _id = id;
         _displayText = displayText;
         _x = x;
         _y = y;
-        _onChanged = onChanged;
+        _context = context;
+        _onChanged = context.MarkDirty;
     }
 
     partial void OnIdChanged(string value) => _onChanged();
@@ -57,9 +60,17 @@ public partial class NodeViewModel : ViewModelBase
 
     public ChoiceViewModel AddChoice(NodeViewModel? target = null)
     {
-        var choice = new ChoiceViewModel("New choice", target, _onChanged);
+        var choice = new ChoiceViewModel("New choice", target, _context);
         Choices.Add(choice);
         _onChanged();
         return choice;
     }
+
+    /// <summary>Adds a new choice to this node via the editor (keeps wires/entities in sync).</summary>
+    [RelayCommand]
+    private void AddChoiceViaEditor() => _context.AddChoice(this);
+
+    /// <summary>Deletes this node from the graph.</summary>
+    [RelayCommand]
+    private void RemoveSelf() => _context.RemoveNode(this);
 }

@@ -102,7 +102,7 @@ public class ConditionEditorTests
         var (editor, node, _) = BuildWithEntity();
         var choice = TestFactory.AddChoice(editor, node);
 
-        editor.AddConditionToChoiceCommand.Execute(choice);
+        choice.AddConditionCommand.Execute(null);
 
         Assert.True(choice.HasCondition);
         var group = Assert.IsType<LogicalGroupViewModel>(choice.ConditionRoot);
@@ -115,10 +115,10 @@ public class ConditionEditorTests
     {
         var (editor, node, _) = BuildWithEntity();
         var choice = TestFactory.AddChoice(editor, node);
-        editor.AddConditionToChoiceCommand.Execute(choice);
+        choice.AddConditionCommand.Execute(null);
         var atomic = ((LogicalGroupViewModel)choice.ConditionRoot!).Children[0];
 
-        editor.RemoveConditionNodeCommand.Execute(atomic);
+        atomic.RemoveSelfCommand.Execute(null);
 
         Assert.False(choice.HasCondition);
         Assert.Null(choice.ConditionRoot);
@@ -129,15 +129,15 @@ public class ConditionEditorTests
     {
         var (editor, node, _) = BuildWithEntity();
         var choice = TestFactory.AddChoice(editor, node);
-        editor.AddConditionToChoiceCommand.Execute(choice);
+        choice.AddConditionCommand.Execute(null);
         var group = (LogicalGroupViewModel)choice.ConditionRoot!;
 
-        editor.AddGroupToGroupCommand.Execute(group);
+        group.AddGroupCommand.Execute(null);
         Assert.Equal(2, group.Children.Count);                 // original atomic + new group
         var nested = Assert.IsType<LogicalGroupViewModel>(group.Children[1]);
         Assert.Single(nested.Children);                        // seeded with one atomic
 
-        editor.RemoveConditionNodeCommand.Execute(nested);
+        nested.RemoveSelfCommand.Execute(null);
         Assert.True(choice.HasCondition);                      // root still has the atomic
         Assert.Single(group.Children);
     }
@@ -161,7 +161,7 @@ public class ConditionEditorTests
     public void Hide_behavior_omits_the_choice_from_current_choices()
     {
         var (editor, node) = BuildGated(gold: 10, ConditionFalseBehavior.Hide);
-        var player = new PlayerViewModel(node, editor.Entities, () => { });
+        var player = new PlayerViewModel(node, editor.Entities);
         Assert.Empty(player.CurrentChoices);
     }
 
@@ -169,7 +169,7 @@ public class ConditionEditorTests
     public void Close_behavior_keeps_the_choice_but_marks_it_not_openable()
     {
         var (editor, node) = BuildGated(gold: 10, ConditionFalseBehavior.Close);
-        var player = new PlayerViewModel(node, editor.Entities, () => { });
+        var player = new PlayerViewModel(node, editor.Entities);
         var pc = Assert.Single(player.CurrentChoices);
         Assert.False(pc.IsOpenable);
     }
@@ -178,7 +178,7 @@ public class ConditionEditorTests
     public void Satisfied_condition_is_openable()
     {
         var (editor, node) = BuildGated(gold: 100, ConditionFalseBehavior.Hide);
-        var player = new PlayerViewModel(node, editor.Entities, () => { });
+        var player = new PlayerViewModel(node, editor.Entities);
         var pc = Assert.Single(player.CurrentChoices);
         Assert.True(pc.IsOpenable);   // condition true → shown even under Hide
     }
@@ -233,7 +233,7 @@ public class ConditionEditorTests
             Assert.True(rChoice.HasCondition);
             Assert.Equal(ConditionFalseBehavior.Hide, rChoice.ConditionFalseBehavior);
 
-            var player = new PlayerViewModel(reopened.Nodes.First(), reopened.Entities, () => { });
+            var player = new PlayerViewModel(reopened.Nodes.First(), reopened.Entities);
             var pc = Assert.Single(player.CurrentChoices);
             Assert.True(pc.IsOpenable);
         }

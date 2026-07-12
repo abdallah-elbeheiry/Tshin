@@ -9,7 +9,7 @@ namespace Tshin.ViewModels;
 public partial class EditorViewModel
 {
     [RelayCommand]
-    private void RemoveComponentFromEntity(ComponentViewModel? component)
+    public void RemoveComponentFromEntity(ComponentViewModel? component)
     {
         if (component is null) return;
         // Find the entity that owns this component
@@ -25,7 +25,7 @@ public partial class EditorViewModel
     }
 
     [RelayCommand]
-    private void RemoveEntity(EntityViewModel? entity)
+    public void RemoveEntity(EntityViewModel? entity)
     {
         entity ??= SelectedEntity;
         if (entity is null) return;

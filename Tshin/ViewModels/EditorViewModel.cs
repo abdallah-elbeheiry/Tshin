@@ -15,7 +15,7 @@ namespace Tshin.ViewModels;
 /// between choices and nodes, and the canvas viewport (pan/zoom). Builds from a
 /// <see cref="StorySnapshot"/> and writes a fresh snapshot back on save.
 /// </summary>
-public partial class EditorViewModel : ViewModelBase
+public partial class EditorViewModel : ViewModelBase, IEditorContext
 {
     private readonly IProjectService _projectService;
     private readonly string _projectId;
@@ -60,7 +60,7 @@ public partial class EditorViewModel : ViewModelBase
 
     /// <summary>Breadcrumb from the component inspector back up to its owning entity.</summary>
     [RelayCommand]
-    private void BackToEntity() => SelectedComponent = null;
+    public void BackToEntity() => SelectedComponent = null;
 
     [ObservableProperty]
     private bool _snapToGrid;
@@ -114,7 +114,7 @@ public partial class EditorViewModel : ViewModelBase
     /// <summary>Snaps a world coordinate to the grid when snapping is enabled.</summary>
     public double Snap(double value) => SnapToGrid ? Math.Round(value / GridSize) * GridSize : value;
 
-    internal void MarkDirty() => IsDirty = true;
+    public void MarkDirty() => IsDirty = true;
 
     // ---- graph construction -------------------------------------------------
 
@@ -123,10 +123,10 @@ public partial class EditorViewModel : ViewModelBase
         // --- Build entities ---
         foreach (var es in snapshot.Entities)
         {
-            var evm = new EntityViewModel(es.Id, es.Name, es.X, es.Y, MarkDirty) { Visible = es.Visible };
+            var evm = new EntityViewModel(es.Id, es.Name, es.X, es.Y, this) { Visible = es.Visible };
             foreach (var cs in es.Components)
             {
-                var cvm = ComponentFromSnapshot(cs, MarkDirty);
+                var cvm = ComponentFromSnapshot(cs, this);
                 if (cvm is not null)
                     evm.Components.Add(cvm);
             }
@@ -137,7 +137,7 @@ public partial class EditorViewModel : ViewModelBase
         var byId = new Dictionary<string, NodeViewModel>();
         foreach (var n in snapshot.Nodes)
         {
-            var vm = new NodeViewModel(n.Id, n.DisplayText, n.X, n.Y, MarkDirty);
+            var vm = new NodeViewModel(n.Id, n.DisplayText, n.X, n.Y, this);
             Nodes.Add(vm);
             byId[n.Id] = vm;
         }
@@ -148,7 +148,7 @@ public partial class EditorViewModel : ViewModelBase
             foreach (var c in n.Choices)
             {
                 NodeViewModel? target = c.TargetNodeId is not null && byId.TryGetValue(c.TargetNodeId, out var t) ? t : null;
-                var choiceVm = new ChoiceViewModel(c.DisplayText, target, MarkDirty);
+                var choiceVm = new ChoiceViewModel(c.DisplayText, target, this);
                 choiceVm.AvailableEntities = Entities;
                 // Restore the condition tree (AvailableEntities is set, so pickers resolve).
                 if (c.Condition is not null)
@@ -157,7 +157,7 @@ public partial class EditorViewModel : ViewModelBase
                 // Build commands from snapshot
                 foreach (var cmd in c.Commands)
                 {
-                    var cmdVm = CommandFromSnapshot(cmd, Entities, MarkDirty);
+                    var cmdVm = CommandFromSnapshot(cmd, Entities, this);
                     if (cmdVm is not null)
                     {
                         // Restore the command's condition tree (AvailableEntities is set, so pickers resolve).
@@ -174,33 +174,33 @@ public partial class EditorViewModel : ViewModelBase
         IsDirty = false;
     }
 
-    private static ComponentViewModel? ComponentFromSnapshot(ComponentSnapshot cs, Action onChanged)
+    private static ComponentViewModel? ComponentFromSnapshot(ComponentSnapshot cs, IEditorContext context)
     {
         ComponentViewModel? cvm = cs switch
         {
-            NumberComponentSnapshot n => new NumberComponentViewModel(n.Name, n.Value, n.MinValue, n.MaxValue, onChanged),
-            TextComponentSnapshot t => new TextComponentViewModel(t.Name, t.Value, onChanged),
-            ConditionComponentSnapshot c => new ConditionComponentViewModel(c.Name, c.Value, onChanged),
+            NumberComponentSnapshot n => new NumberComponentViewModel(n.Name, n.Value, n.MinValue, n.MaxValue, context),
+            TextComponentSnapshot t => new TextComponentViewModel(t.Name, t.Value, context),
+            ConditionComponentSnapshot c => new ConditionComponentViewModel(c.Name, c.Value, context),
             _ => null
         };
         if (cvm is not null) cvm.Visible = cs.Visible;
         return cvm;
     }
 
-    private static CommandViewModel? CommandFromSnapshot(CommandSnapshot cs, ObservableCollection<EntityViewModel> entities, Action onChanged)
+    private static CommandViewModel? CommandFromSnapshot(CommandSnapshot cs, ObservableCollection<EntityViewModel> entities, IEditorContext context)
     {
         var targetEntity = entities.FirstOrDefault(e => e.Id == cs.TargetEntityId);
         return cs switch
         {
             ModifyNumberCommandSnapshot n => new CommandViewModel(
                 targetEntity, n.TargetComponentName, n.Field, n.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                n.Value, false, entities, onChanged),
+                n.Value, false, entities, context),
             ModifyTextCommandSnapshot t => new CommandViewModel(
                 targetEntity, t.TargetComponentName, "Set", t.Value,
-                0, false, entities, onChanged),
+                0, false, entities, context),
             ModifyBooleanCommandSnapshot b => new CommandViewModel(
                 targetEntity, b.TargetComponentName, "Set", b.Value.ToString(),
-                0, b.Value, entities, onChanged),
+                0, b.Value, entities, context),
             _ => null
         };
     }
@@ -211,7 +211,7 @@ public partial class EditorViewModel : ViewModelBase
     {
         var id = Guid.NewGuid().ToString("D");
         var name = $"entity_{++_newEntityCounter}";
-        var evm = new EntityViewModel(id, name, worldX, worldY, MarkDirty);
+        var evm = new EntityViewModel(id, name, worldX, worldY, this);
         Entities.Add(evm);
         RefreshAvailableEntitiesOnChoices();
         MarkDirty();
@@ -222,9 +222,9 @@ public partial class EditorViewModel : ViewModelBase
     {
         ComponentViewModel comp = componentType switch
         {
-            "number" => new NumberComponentViewModel("New Number", 0, 0, double.MaxValue, MarkDirty),
-            "text" => new TextComponentViewModel("New Text", "", MarkDirty),
-            "condition" => new ConditionComponentViewModel("New Condition", false, MarkDirty),
+            "number" => new NumberComponentViewModel("New Number", 0, 0, double.MaxValue, this),
+            "text" => new TextComponentViewModel("New Text", "", this),
+            "condition" => new ConditionComponentViewModel("New Condition", false, this),
             _ => throw new ArgumentException($"Unknown component type: {componentType}")
         };
         entity.Components.Add(comp);
@@ -290,7 +290,7 @@ public partial class EditorViewModel : ViewModelBase
     {
         var startNode = Nodes.FirstOrDefault();
         if (startNode is null) return;
-        var player = new PlayerViewModel(startNode, Entities, MarkDirty);
+        var player = new PlayerViewModel(startNode, Entities);
         RequestPlay?.Invoke(player);
     }
 

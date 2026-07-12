@@ -66,7 +66,7 @@ public class UiRenderingTests
         editor.AddComponentToEntity(entity, "number");
         ((NumberComponentViewModel)entity.Components[0]).Name = "hp";
 
-        var player = new PlayerViewModel(start, editor.Entities, () => { });
+        var player = new PlayerViewModel(start, editor.Entities);
         var window = new PlayerWindow { DataContext = player };
         window.Show();
         Pump();
@@ -90,7 +90,7 @@ public class UiRenderingTests
     {
         var editor = TestFactory.Editor();
         var start = editor.CreateNodeAt(0, 0);
-        var player = new PlayerViewModel(start, editor.Entities, () => { });
+        var player = new PlayerViewModel(start, editor.Entities);
         var window = new PlayerWindow { DataContext = player };
         window.Show();
         Pump();

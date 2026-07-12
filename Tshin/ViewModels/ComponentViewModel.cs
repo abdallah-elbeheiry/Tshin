@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System;
 
 namespace Tshin.ViewModels;
@@ -8,6 +9,7 @@ namespace Tshin.ViewModels;
 /// </summary>
 public abstract partial class ComponentViewModel : ViewModelBase
 {
+    protected readonly IEditorContext _context;
     protected readonly Action _onChanged;
 
     [ObservableProperty]
@@ -22,14 +24,23 @@ public abstract partial class ComponentViewModel : ViewModelBase
     /// <summary>Human-readable current value, shown in the player's entities panel.</summary>
     public abstract string DisplayValue { get; }
 
-    public ComponentViewModel(string name, Action onChanged)
+    public ComponentViewModel(string name, IEditorContext context)
     {
         _name = name;
-        _onChanged = onChanged;
+        _context = context;
+        _onChanged = context.MarkDirty;
     }
 
     partial void OnNameChanged(string value) => _onChanged();
     partial void OnVisibleChanged(bool value) => _onChanged();
+
+    /// <summary>Removes this component from its owning entity.</summary>
+    [RelayCommand]
+    private void RemoveSelf() => _context.RemoveComponentFromEntity(this);
+
+    /// <summary>Returns the inspector from a component editor to its owning entity.</summary>
+    [RelayCommand]
+    private void BackToEntity() => _context.BackToEntity();
 }
 
 public sealed partial class NumberComponentViewModel : ComponentViewModel
@@ -46,8 +57,8 @@ public sealed partial class NumberComponentViewModel : ComponentViewModel
     public override string ComponentType => "number";
     public override string DisplayValue => Value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
-    public NumberComponentViewModel(string name, double value, double minValue, double maxValue, Action onChanged)
-        : base(name, onChanged)
+    public NumberComponentViewModel(string name, double value, double minValue, double maxValue, IEditorContext context)
+        : base(name, context)
     {
         _value = value;
         _minValue = minValue;
@@ -67,8 +78,8 @@ public sealed partial class TextComponentViewModel : ComponentViewModel
     public override string ComponentType => "text";
     public override string DisplayValue => Value;
 
-    public TextComponentViewModel(string name, string value, Action onChanged)
-        : base(name, onChanged)
+    public TextComponentViewModel(string name, string value, IEditorContext context)
+        : base(name, context)
     {
         _value = value;
     }
@@ -84,8 +95,8 @@ public sealed partial class ConditionComponentViewModel : ComponentViewModel
     public override string ComponentType => "condition";
     public override string DisplayValue => Value ? "true" : "false";
 
-    public ConditionComponentViewModel(string name, bool value, Action onChanged)
-        : base(name, onChanged)
+    public ConditionComponentViewModel(string name, bool value, IEditorContext context)
+        : base(name, context)
     {
         _value = value;
     }

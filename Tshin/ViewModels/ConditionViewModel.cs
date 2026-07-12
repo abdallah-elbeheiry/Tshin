@@ -5,6 +5,7 @@ using System.Collections.Specialized;
 using System.Globalization;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Tshin.Core.Models;
 using Tshin.Core.Utils.Systems;
 
@@ -19,12 +20,21 @@ namespace Tshin.ViewModels;
 /// </summary>
 public abstract partial class ConditionNodeViewModel : ViewModelBase
 {
+    protected readonly IEditorContext _context;
     protected readonly Action _onChanged;
 
     /// <summary>The group this node lives in, or null when it is the root of a choice's tree.</summary>
     public LogicalGroupViewModel? Parent { get; set; }
 
-    protected ConditionNodeViewModel(Action onChanged) => _onChanged = onChanged;
+    protected ConditionNodeViewModel(IEditorContext context)
+    {
+        _context = context;
+        _onChanged = context.MarkDirty;
+    }
+
+    /// <summary>Removes this condition node (and collapses empty parents up the tree).</summary>
+    [RelayCommand]
+    private void RemoveSelf() => _context.RemoveConditionNode(this);
 
     /// <summary>Builds a fresh domain condition node from the current editor state.</summary>
     public abstract IConditionComponentNode BuildModel();
@@ -57,21 +67,21 @@ public abstract partial class ConditionNodeViewModel : ViewModelBase
     public static ConditionNodeViewModel FromModel(
         IConditionComponentNode node,
         ObservableCollection<EntityViewModel>? entities,
-        Action onChanged)
+        IEditorContext context)
     {
         switch (node)
         {
             case LogicalGroupNode group:
-                var groupVm = new LogicalGroupViewModel(onChanged) { AvailableEntities = entities, IsAnd = group.IsAnd };
+                var groupVm = new LogicalGroupViewModel(context) { AvailableEntities = entities, IsAnd = group.IsAnd };
                 foreach (var child in group.Children)
-                    groupVm.AddChild(FromModel(child, entities, onChanged));
+                    groupVm.AddChild(FromModel(child, entities, context));
                 return groupVm;
 
             case AtomicConditionNode atomic:
-                return new AtomicConditionViewModel(atomic, entities, onChanged);
+                return new AtomicConditionViewModel(atomic, entities, context);
 
             default:
-                return new LogicalGroupViewModel(onChanged) { AvailableEntities = entities };
+                return new LogicalGroupViewModel(context) { AvailableEntities = entities };
         }
     }
 }
@@ -129,8 +139,8 @@ public partial class AtomicConditionViewModel : ConditionNodeViewModel
     public AtomicConditionViewModel(
         AtomicConditionNode? model,
         ObservableCollection<EntityViewModel>? entities,
-        Action onChanged)
-        : base(onChanged)
+        IEditorContext context)
+        : base(context)
     {
         AvailableEntities = entities ?? new();
 
@@ -286,7 +296,7 @@ public partial class LogicalGroupViewModel : ConditionNodeViewModel
         set => IsAnd = value == 0;
     }
 
-    public LogicalGroupViewModel(Action onChanged) : base(onChanged) { }
+    public LogicalGroupViewModel(IEditorContext context) : base(context) { }
 
     public void AddChild(ConditionNodeViewModel child)
     {
@@ -299,6 +309,14 @@ public partial class LogicalGroupViewModel : ConditionNodeViewModel
         if (Children.Remove(child))
             child.Parent = null;
     }
+
+    /// <summary>Adds a new atomic condition to this group.</summary>
+    [RelayCommand]
+    private void AddAtomic() => _context.AddAtomicToGroup(this);
+
+    /// <summary>Adds a nested AND/OR group to this group.</summary>
+    [RelayCommand]
+    private void AddGroup() => _context.AddGroupToGroup(this);
 
     partial void OnIsAndChanged(bool value)
     {

@@ -29,8 +29,7 @@
                                    Foreground="{StaticResource TextSecondaryBrush}"
                                    VerticalAlignment="Center" />
                         <Button Grid.Column="1" Content="✕" Classes="icon danger"
-                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveConditionNodeCommand}"
-                                CommandParameter="{Binding}"
+                                Command="{Binding RemoveSelfCommand}"
                                 ToolTip.Tip="Remove condition" />
                     </Grid>
 
@@ -79,8 +78,7 @@
                                    VerticalAlignment="Center"
                                    Foreground="{StaticResource TextSecondaryBrush}" />
                         <Button Grid.Column="2" Content="✕" Classes="icon danger"
-                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveConditionNodeCommand}"
-                                CommandParameter="{Binding}"
+                                Command="{Binding RemoveSelfCommand}"
                                 ToolTip.Tip="Remove group" />
                     </Grid>
 
@@ -89,11 +87,9 @@
 
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <Button Content="+ Condition" Classes="ghost" FontSize="10"
-                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).AddAtomicToGroupCommand}"
-                                CommandParameter="{Binding}" />
+                                Command="{Binding AddAtomicCommand}" />
                         <Button Content="+ Group" Classes="ghost" FontSize="10"
-                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).AddGroupToGroupCommand}"
-                                CommandParameter="{Binding}" />
+                                Command="{Binding AddGroupCommand}" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -356,12 +352,10 @@
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal"
                                                                             Spacing="2" VerticalAlignment="Center">
                                                                     <Button Content="⚙" Classes="icon"
-                                                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).OpenChoiceInspectorCommand}"
-                                                                            CommandParameter="{Binding}"
+                                                                            Command="{Binding OpenInspectorCommand}"
                                                                             ToolTip.Tip="Edit choice" />
                                                                     <Button Content="✕" Classes="icon danger"
-                                                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveChoiceCommand}"
-                                                                            CommandParameter="{Binding}"
+                                                                            Command="{Binding RemoveSelfCommand}"
                                                                             ToolTip.Tip="Remove choice" />
                                                                 </StackPanel>
                                                             </Grid>
@@ -378,8 +372,7 @@
 
                                         <Button Content="+ choice" Classes="ghost" Margin="8,4,8,8"
                                                 HorizontalAlignment="Stretch" FontSize="11"
-                                                Command="{Binding $parent[ItemsControl].((vm:EditorViewModel)DataContext).AddChoiceCommand}"
-                                                CommandParameter="{Binding}" />
+                                                Command="{Binding AddChoiceViaEditorCommand}" />
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -425,8 +418,7 @@
                                              MinHeight="90" />
                                     <Button Content="Delete node" Classes="danger" Margin="0,12,0,0"
                                             HorizontalAlignment="Stretch"
-                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveNodeCommand}"
-                                            CommandParameter="{Binding}" />
+                                            Command="{Binding RemoveSelfCommand}" />
                                 </StackPanel>
                             </DataTemplate>
 
@@ -485,22 +477,19 @@
                                                         <Button Content="+ Add condition" Classes="ghost" FontSize="10"
                                                                 HorizontalAlignment="Stretch"
                                                                 IsVisible="{Binding !HasCondition}"
-                                                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).AddConditionToCommandCommand}"
-                                                                CommandParameter="{Binding}" />
+                                                                Command="{Binding AddConditionCommand}" />
 
                                                         <StackPanel Spacing="4" IsVisible="{Binding HasCondition}">
                                                             <ContentControl Content="{Binding ConditionRoot}" />
                                                             <Button Content="Remove condition" Classes="danger" FontSize="10"
                                                                     HorizontalAlignment="Stretch" Margin="0,2,0,0"
-                                                                    Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveConditionFromCommandCommand}"
-                                                                    CommandParameter="{Binding}" />
+                                                                    Command="{Binding RemoveConditionSelfCommand}" />
                                                         </StackPanel>
 
                                                         <Button Content="✕ Remove" Classes="danger"
                                                                 HorizontalAlignment="Right" FontSize="10"
                                                                 Padding="8,3" Margin="0,4,0,0"
-                                                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveCommandFromChoiceCommand}"
-                                                                CommandParameter="{Binding}"
+                                                                Command="{Binding RemoveSelfCommand}"
                                                                 ToolTip.Tip="Remove command" />
                                                     </StackPanel>
                                                 </Border>
@@ -510,8 +499,7 @@
 
                                     <Button Content="+ Command" Classes="ghost" Margin="0,4,0,0"
                                             HorizontalAlignment="Stretch" FontSize="11"
-                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).AddCommandToChoiceCommand}"
-                                            CommandParameter="{Binding}" />
+                                            Command="{Binding AddCommandCommand}" />
 
                                     <!-- Condition (optional) -->
                                     <TextBlock Text="Condition (optional)" Classes="section" />
@@ -519,8 +507,7 @@
                                     <Button Content="+ Add condition" Classes="ghost"
                                             HorizontalAlignment="Stretch" FontSize="11"
                                             IsVisible="{Binding !HasCondition}"
-                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).AddConditionToChoiceCommand}"
-                                            CommandParameter="{Binding}" />
+                                            Command="{Binding AddConditionCommand}" />
 
                                     <StackPanel Spacing="6" IsVisible="{Binding HasCondition}">
                                         <ContentControl Content="{Binding ConditionRoot}" />
@@ -534,8 +521,7 @@
 
                                         <Button Content="Remove condition" Classes="danger"
                                                 HorizontalAlignment="Stretch" FontSize="11" Margin="0,4,0,0"
-                                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveConditionCommand}"
-                                                CommandParameter="{Binding}" />
+                                                Command="{Binding RemoveConditionSelfCommand}" />
                                     </StackPanel>
                                 </StackPanel>
                             </DataTemplate>
@@ -574,8 +560,7 @@
                                                         <TextBlock Grid.Column="0" FontSize="11" FontWeight="SemiBold"
                                                                    Text="{Binding Name}" VerticalAlignment="Center" />
                                                         <Button Grid.Column="1" Content="✕" Classes="icon danger"
-                                                                Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveComponentFromEntityCommand}"
-                                                                CommandParameter="{Binding}"
+                                                                Command="{Binding RemoveSelfCommand}"
                                                                 ToolTip.Tip="Remove component" />
                                                     </Grid>
                                                 </Border>
@@ -585,8 +570,7 @@
 
                                     <Button Content="Delete entity" Classes="danger" Margin="0,8,0,0"
                                             HorizontalAlignment="Stretch"
-                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveEntityCommand}"
-                                            CommandParameter="{Binding}" />
+                                            Command="{Binding RemoveSelfCommand}" />
                                 </StackPanel>
                             </DataTemplate>
 
@@ -596,7 +580,7 @@
                                     <!-- Breadcrumb back to entity -->
                                     <Button Content="‹ Back to entity" Classes="ghost" FontSize="11" Margin="0,0,0,4"
                                             HorizontalAlignment="Left"
-                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).BackToEntityCommand}" />
+                                            Command="{Binding BackToEntityCommand}" />
                                     <TextBlock Text="Number Component" Classes="inspector-title" />
                                     <TextBlock Text="Name" Classes="field-label" />
                                     <TextBox Text="{Binding Name}" />
@@ -624,8 +608,7 @@
                                              FontSize="11" Margin="0,2,0,0" />
                                     <Button Content="Remove component" Classes="danger" Margin="0,12,0,0"
                                             HorizontalAlignment="Stretch"
-                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveComponentFromEntityCommand}"
-                                            CommandParameter="{Binding}" />
+                                            Command="{Binding RemoveSelfCommand}" />
                                 </StackPanel>
                             </DataTemplate>
 
@@ -634,7 +617,7 @@
                                 <StackPanel Margin="16" Spacing="6">
                                     <Button Content="‹ Back to entity" Classes="ghost" FontSize="11" Margin="0,0,0,4"
                                             HorizontalAlignment="Left"
-                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).BackToEntityCommand}" />
+                                            Command="{Binding BackToEntityCommand}" />
                                     <TextBlock Text="Text Component" Classes="inspector-title" />
                                     <TextBlock Text="Name" Classes="field-label" />
                                     <TextBox Text="{Binding Name}" />
@@ -656,8 +639,7 @@
                                              MinHeight="60" FontSize="11" Margin="0,2,0,0" />
                                     <Button Content="Remove component" Classes="danger" Margin="0,12,0,0"
                                             HorizontalAlignment="Stretch"
-                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveComponentFromEntityCommand}"
-                                            CommandParameter="{Binding}" />
+                                            Command="{Binding RemoveSelfCommand}" />
                                 </StackPanel>
                             </DataTemplate>
 
@@ -666,7 +648,7 @@
                                 <StackPanel Margin="16" Spacing="6">
                                     <Button Content="‹ Back to entity" Classes="ghost" FontSize="11" Margin="0,0,0,4"
                                             HorizontalAlignment="Left"
-                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).BackToEntityCommand}" />
+                                            Command="{Binding BackToEntityCommand}" />
                                     <TextBlock Text="Condition Component" Classes="inspector-title" />
                                     <TextBlock Text="Name" Classes="field-label" />
                                     <TextBox Text="{Binding Name}" />
@@ -687,8 +669,7 @@
                                     <ToggleSwitch IsChecked="{Binding Value}" Margin="0,2,0,0" />
                                     <Button Content="Remove component" Classes="danger" Margin="0,12,0,0"
                                             HorizontalAlignment="Stretch"
-                                            Command="{Binding $parent[UserControl].((vm:EditorViewModel)DataContext).RemoveComponentFromEntityCommand}"
-                                            CommandParameter="{Binding}" />
+                                            Command="{Binding RemoveSelfCommand}" />
                                 </StackPanel>
                             </DataTemplate>
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Tshin.ViewModels;
 
@@ -9,6 +10,7 @@ namespace Tshin.ViewModels;
 /// </summary>
 public partial class EntityViewModel : ViewModelBase
 {
+    private readonly IEditorContext _context;
     private readonly Action _onChanged;
 
     [ObservableProperty]
@@ -37,14 +39,19 @@ public partial class EntityViewModel : ViewModelBase
 
     public ObservableCollection<ComponentViewModel> Components { get; } = new();
 
-    public EntityViewModel(string id, string name, double x, double y, Action onChanged)
+    public EntityViewModel(string id, string name, double x, double y, IEditorContext context)
     {
         _id = id;
         _name = name;
         _x = x;
         _y = y;
-        _onChanged = onChanged;
+        _context = context;
+        _onChanged = context.MarkDirty;
     }
+
+    /// <summary>Deletes this entity from the graph.</summary>
+    [RelayCommand]
+    private void RemoveSelf() => _context.RemoveEntity(this);
 
     partial void OnNameChanged(string value) => _onChanged();
 

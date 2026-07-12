@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Tshin.Core.Models;
 
 namespace Tshin.ViewModels;
@@ -16,6 +17,7 @@ namespace Tshin.ViewModels;
 /// </summary>
 public partial class CommandViewModel : ViewModelBase
 {
+    private readonly IEditorContext _context;
     private readonly Action _onChanged;
 
     // ── Entity selection ──────────────────────────────────────────────────
@@ -82,7 +84,7 @@ public partial class CommandViewModel : ViewModelBase
         get => ConditionRoot?.BuildModel();
         set => ConditionRoot = value is null
             ? null
-            : ConditionNodeViewModel.FromModel(value, AvailableEntities, _onChanged);
+            : ConditionNodeViewModel.FromModel(value, AvailableEntities, _context);
     }
 
     public bool HasCondition => ConditionRoot is not null;
@@ -112,7 +114,7 @@ public partial class CommandViewModel : ViewModelBase
         double numberValue,
         bool boolValue,
         ObservableCollection<EntityViewModel> availableEntities,
-        Action onChanged)
+        IEditorContext context)
     {
         _targetEntity = targetEntity;
         _numberValue = numberValue;
@@ -120,7 +122,8 @@ public partial class CommandViewModel : ViewModelBase
         _boolValueText = boolValue ? "true" : "false";
         _textValue = valueText;
         AvailableEntities = availableEntities;
-        _onChanged = onChanged;
+        _context = context;
+        _onChanged = context.MarkDirty;
 
         // Set field index
         var idx = AvailableFields.IndexOf(field);
@@ -218,4 +221,15 @@ public partial class CommandViewModel : ViewModelBase
                 AvailableComponents.Add(c);
         }
     }
+
+    // ── Editor-delegating commands (bound locally by the inspector view) ──
+
+    [RelayCommand]
+    private void RemoveSelf() => _context.RemoveCommandFromChoice(this);
+
+    [RelayCommand]
+    private void AddCondition() => _context.AddConditionToCommand(this);
+
+    [RelayCommand]
+    private void RemoveConditionSelf() => _context.RemoveConditionFromCommand(this);
 }
