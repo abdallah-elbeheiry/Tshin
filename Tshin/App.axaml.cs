@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
+using System;
+using System.IO;
 using System.Linq;
 using Avalonia.Markup.Xaml;
 using Tshin.Services;
@@ -21,9 +23,12 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var storageRoot = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Tshin");
+
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(new MockProjectService()),
+                DataContext = new MainWindowViewModel(new FileProjectService(storageRoot)),
             };
         }
 
