@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Tshin.Platform;
 using Tshin.ViewModels;
 
 namespace Tshin.Views;
@@ -14,6 +15,11 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // Native decorations off macOS; the custom traffic-light drag strip is macOS-only.
+        PlatformChrome.ApplyWindowChrome(this);
+        if (!PlatformChrome.IsMac)
+            TitleBar.IsVisible = false;
+
         DataContextChanged += (_, _) =>
         {
             if (DataContext is MainWindowViewModel vm)
@@ -22,6 +28,15 @@ public partial class MainWindow : Window
 
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
+    }
+
+    protected override void OnOpened(System.EventArgs e)
+    {
+        base.OnOpened(e);
+        // Acrylic only renders where the compositor granted a blur level; otherwise the flat
+        // sidebar fill behind it shows through.
+        if (!PlatformChrome.AcrylicGranted(this))
+            SidebarAcrylic.IsVisible = false;
     }
 
     // ---- custom title-bar drag (window has extended client area) ----

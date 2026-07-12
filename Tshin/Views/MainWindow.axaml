@@ -24,8 +24,10 @@
     <Grid ColumnDefinitions="240,*" Background="{DynamicResource WindowBgBrush}" DragDrop.AllowDrop="True">
 
         <!-- ============ SIDEBAR ============ -->
-        <Panel Grid.Column="0">
-            <ExperimentalAcrylicBorder IsHitTestVisible="False">
+        <!-- Flat fill is the fallback; the acrylic layer on top is hidden at runtime when the
+             compositor doesn't grant a blur transparency level (see MainWindow.axaml.cs). -->
+        <Panel Grid.Column="0" Background="{DynamicResource SidebarBgBrush}">
+            <ExperimentalAcrylicBorder x:Name="SidebarAcrylic" IsHitTestVisible="False">
                 <ExperimentalAcrylicBorder.Material>
                     <ExperimentalAcrylicMaterial BackgroundSource="Digger"
                                                  TintColor="#242426" TintOpacity="1" MaterialOpacity="0.6" />
