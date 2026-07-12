@@ -14,6 +14,8 @@ internal sealed class RecordingEditorContext : IEditorContext
     public ObservableCollection<EntityViewModel> Entities { get; } = new();
 
     public void MarkDirty() => MarkDirtyCount++;
+    public void NoteContinuousChange(object target, string kind) => MarkDirtyCount++;
+    public void FlushHistory() { }
     public void AddChoice(NodeViewModel? node) { }
     public void RemoveNode(NodeViewModel? node) { }
     public void RemoveChoice(ChoiceViewModel? choice) { }

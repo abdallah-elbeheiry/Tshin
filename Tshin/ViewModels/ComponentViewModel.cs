@@ -31,7 +31,7 @@ public abstract partial class ComponentViewModel : ViewModelBase
         _onChanged = context.MarkDirty;
     }
 
-    partial void OnNameChanged(string value) => _onChanged();
+    partial void OnNameChanged(string value) => _context.NoteContinuousChange(this, "text");
     partial void OnVisibleChanged(bool value) => _onChanged();
 
     /// <summary>Removes this component from its owning entity.</summary>
@@ -65,9 +65,9 @@ public sealed partial class NumberComponentViewModel : ComponentViewModel
         _maxValue = maxValue;
     }
 
-    partial void OnValueChanged(double value) { _onChanged(); OnPropertyChanged(nameof(DisplayValue)); }
-    partial void OnMinValueChanged(double value) => _onChanged();
-    partial void OnMaxValueChanged(double value) => _onChanged();
+    partial void OnValueChanged(double value) { _context.NoteContinuousChange(this, "value"); OnPropertyChanged(nameof(DisplayValue)); }
+    partial void OnMinValueChanged(double value) => _context.NoteContinuousChange(this, "value");
+    partial void OnMaxValueChanged(double value) => _context.NoteContinuousChange(this, "value");
 }
 
 public sealed partial class TextComponentViewModel : ComponentViewModel
@@ -84,7 +84,7 @@ public sealed partial class TextComponentViewModel : ComponentViewModel
         _value = value;
     }
 
-    partial void OnValueChanged(string value) { _onChanged(); OnPropertyChanged(nameof(DisplayValue)); }
+    partial void OnValueChanged(string value) { _context.NoteContinuousChange(this, "value"); OnPropertyChanged(nameof(DisplayValue)); }
 }
 
 public sealed partial class ConditionComponentViewModel : ComponentViewModel

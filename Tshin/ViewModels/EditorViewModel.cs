@@ -52,7 +52,7 @@ public partial class EditorViewModel : ViewModelBase, IEditorContext
     public object? SelectedInspectorTarget
         => (object?)SelectedComponent ?? SelectedChoice ?? (object?)SelectedEntity ?? SelectedNode;
 
-    partial void OnProjectNameChanged(string value) => MarkDirty();
+    partial void OnProjectNameChanged(string value) => NoteContinuousChange(this, "projectname");
     partial void OnSelectedNodeChanged(NodeViewModel? value) => OnPropertyChanged(nameof(SelectedInspectorTarget));
     partial void OnSelectedChoiceChanged(ChoiceViewModel? value) => OnPropertyChanged(nameof(SelectedInspectorTarget));
     partial void OnSelectedEntityChanged(EntityViewModel? value) => OnPropertyChanged(nameof(SelectedInspectorTarget));
@@ -109,12 +109,14 @@ public partial class EditorViewModel : ViewModelBase, IEditorContext
 
         // When entities change, refresh AvailableEntities on all choices
         Entities.CollectionChanged += (_, _) => RefreshAvailableEntitiesOnChoices();
+
+        InitHistory();
     }
 
     /// <summary>Snaps a world coordinate to the grid when snapping is enabled.</summary>
     public double Snap(double value) => SnapToGrid ? Math.Round(value / GridSize) * GridSize : value;
 
-    public void MarkDirty() => IsDirty = true;
+    // MarkDirty and the undo/redo history live in EditorViewModel.History.cs.
 
     // ---- graph construction -------------------------------------------------
 

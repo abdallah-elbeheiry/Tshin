@@ -11,8 +11,17 @@ namespace Tshin.ViewModels;
 /// </summary>
 public interface IEditorContext
 {
-    /// <summary>Marks the editor dirty; also the low-level change signal for child VMs.</summary>
+    /// <summary>Marks the editor dirty and closes it as one discrete undo step.</summary>
     void MarkDirty();
+
+    /// <summary>
+    /// Marks a continuous edit (drag, typing) dirty and coalesces a run of them under
+    /// (<paramref name="target"/>, <paramref name="kind"/>) into a single undo step.
+    /// </summary>
+    void NoteContinuousChange(object target, string kind);
+
+    /// <summary>Closes any open continuous run, banking it as one undo step.</summary>
+    void FlushHistory();
 
     /// <summary>All entities, shared with choice/command/condition pickers.</summary>
     ObservableCollection<EntityViewModel> Entities { get; }
@@ -46,6 +55,8 @@ public sealed class NullEditorContext : IEditorContext
     public ObservableCollection<EntityViewModel> Entities { get; } = new();
 
     public void MarkDirty() { }
+    public void NoteContinuousChange(object target, string kind) { }
+    public void FlushHistory() { }
     public void AddChoice(NodeViewModel? node) { }
     public void RemoveNode(NodeViewModel? node) { }
     public void RemoveChoice(ChoiceViewModel? choice) { }

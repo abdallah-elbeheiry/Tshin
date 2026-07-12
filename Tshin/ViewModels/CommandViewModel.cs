@@ -193,8 +193,8 @@ public partial class CommandViewModel : ViewModelBase
         _onChanged();
     }
 
-    partial void OnNumberValueChanged(double value) => _onChanged();
-    partial void OnTextValueChanged(string value) => _onChanged();
+    partial void OnNumberValueChanged(double value) => _context.NoteContinuousChange(this, "value");
+    partial void OnTextValueChanged(string value) => _context.NoteContinuousChange(this, "value");
     partial void OnBoolValueChanged(bool value) => _onChanged();
     partial void OnBoolValueTextChanged(string value)
     {

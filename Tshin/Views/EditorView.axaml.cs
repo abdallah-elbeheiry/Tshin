@@ -257,6 +257,9 @@ public partial class EditorView : UserControl
         _connectOwner = null;
         _connectIndex = -1;
         e.Pointer.Capture(null);
+
+        // Close the drag (or any open continuous run) as a single undo step.
+        Vm?.FlushHistory();
     }
 
     private void OnViewportWheel(object? sender, PointerWheelEventArgs e)

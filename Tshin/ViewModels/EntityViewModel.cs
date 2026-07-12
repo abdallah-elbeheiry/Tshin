@@ -53,20 +53,21 @@ public partial class EntityViewModel : ViewModelBase
     [RelayCommand]
     private void RemoveSelf() => _context.RemoveEntity(this);
 
-    partial void OnNameChanged(string value) => _onChanged();
+    partial void OnNameChanged(string value) => _context.NoteContinuousChange(this, "text");
 
     partial void OnXChanged(double value)
     {
         OnPropertyChanged(nameof(CanvasX));
-        _onChanged();
+        _context.NoteContinuousChange(this, "pos");
     }
 
     partial void OnYChanged(double value)
     {
         OnPropertyChanged(nameof(CanvasY));
-        _onChanged();
+        _context.NoteContinuousChange(this, "pos");
     }
 
-    partial void OnIsSelectedChanged(bool value) => _onChanged();
+    // Selection is transient view state — it must not mark dirty or record history.
+    partial void OnIsSelectedChanged(bool value) { }
     partial void OnVisibleChanged(bool value) => _onChanged();
 }

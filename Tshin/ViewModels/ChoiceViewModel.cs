@@ -75,8 +75,9 @@ public partial class ChoiceViewModel : ViewModelBase
         _onChanged = context.MarkDirty;
     }
 
-    partial void OnDisplayTextChanged(string value) => _onChanged();
-    partial void OnIsSelectedChanged(bool value) => _onChanged();
+    partial void OnDisplayTextChanged(string value) => _context.NoteContinuousChange(this, "text");
+    // Selection is transient view state — it must not mark dirty or record history.
+    partial void OnIsSelectedChanged(bool value) { }
 
     partial void OnConditionRootChanged(ConditionNodeViewModel? value)
     {

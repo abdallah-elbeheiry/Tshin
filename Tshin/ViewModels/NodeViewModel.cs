@@ -42,20 +42,20 @@ public partial class NodeViewModel : ViewModelBase
         _onChanged = context.MarkDirty;
     }
 
-    partial void OnIdChanged(string value) => _onChanged();
-    partial void OnDisplayTextChanged(string value) => _onChanged();
-    // X/Y changes happen during drags; mark dirty so the move can be saved, and keep
+    partial void OnIdChanged(string value) => _context.NoteContinuousChange(this, "text");
+    partial void OnDisplayTextChanged(string value) => _context.NoteContinuousChange(this, "text");
+    // X/Y changes happen during drags; coalesce the whole drag into one undo step, and keep
     // the biased canvas coordinates (bound to Canvas.Left/Top) in sync.
     partial void OnXChanged(double value)
     {
         OnPropertyChanged(nameof(CanvasX));
-        _onChanged();
+        _context.NoteContinuousChange(this, "pos");
     }
 
     partial void OnYChanged(double value)
     {
         OnPropertyChanged(nameof(CanvasY));
-        _onChanged();
+        _context.NoteContinuousChange(this, "pos");
     }
 
     public ChoiceViewModel AddChoice(NodeViewModel? target = null)

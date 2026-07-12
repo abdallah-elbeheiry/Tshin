@@ -234,8 +234,8 @@ public partial class AtomicConditionViewModel : ConditionNodeViewModel
     }
 
     partial void OnSelectedOperatorChanged(string? value) => _onChanged();
-    partial void OnNumberValueChanged(double value) => _onChanged();
-    partial void OnTextValueChanged(string value) => _onChanged();
+    partial void OnNumberValueChanged(double value) => _context.NoteContinuousChange(this, "value");
+    partial void OnTextValueChanged(string value) => _context.NoteContinuousChange(this, "value");
     partial void OnBoolValueChanged(bool value) => _onChanged();
 
     // ── Helpers ───────────────────────────────────────────────────────────
