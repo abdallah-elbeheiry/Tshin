@@ -156,12 +156,14 @@
                     <ToggleButton Content="Snap" Classes="ghost" IsChecked="{Binding SnapToGrid}"
                                   ToolTip.Tip="Snap nodes to grid" />
                     <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,2" />
-                    <Button Command="{Binding ZoomOutCommand}" Classes="ghost" ToolTip.Tip="Zoom out">
+                    <Button Command="{Binding ZoomOutCommand}" Classes="ghost" ToolTip.Tip="Zoom out"
+                            Width="36" VerticalAlignment="Stretch">
                         <Path Classes="glyph" Data="{StaticResource MinusIcon}" />
                     </Button>
                     <Button Content="Fit" Command="{Binding ZoomToFitCommand}" Classes="ghost"
                             ToolTip.Tip="Zoom to fit" />
-                    <Button Command="{Binding ZoomInCommand}" Classes="ghost" ToolTip.Tip="Zoom in">
+                    <Button Command="{Binding ZoomInCommand}" Classes="ghost" ToolTip.Tip="Zoom in"
+                            Width="36" VerticalAlignment="Stretch">
                         <Path Classes="glyph" Data="{StaticResource PlusIcon}" />
                     </Button>
                     <Button Content="Save" Click="OnSaveClick" Classes="accent" />
