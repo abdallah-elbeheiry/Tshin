@@ -164,7 +164,7 @@ public partial class EditorView : UserControl
     {
         if (Vm is not { } vm) return;
         var world = ToWorld(_lastRightClickPosition);
-        vm.CreateEntityAt(world.X - 90, world.Y);
+        vm.CreateEntityAt(world.X - NodeLayout.EntityWidth / 2, world.Y);
     }
 
     private async void OnExportClick(object? sender, RoutedEventArgs e)
@@ -372,7 +372,7 @@ public partial class EditorView : UserControl
     {
         foreach (var n in vm.Nodes)
         {
-            var h = NodeLayout.ChoicesTop + n.Choices.Count * NodeLayout.ChoiceRowHeight + 44;
+            var h = NodeLayout.NodeHeight(n);
             if (world.X >= n.X && world.X <= n.X + NodeLayout.Width &&
                 world.Y >= n.Y && world.Y <= n.Y + h)
                 return n;
@@ -426,7 +426,7 @@ public partial class EditorView : UserControl
         double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
         foreach (var n in vm.Nodes)
         {
-            var h = NodeLayout.ChoicesTop + n.Choices.Count * NodeLayout.ChoiceRowHeight + 44;
+            var h = NodeLayout.NodeHeight(n);
             minX = Math.Min(minX, n.X);
             minY = Math.Min(minY, n.Y);
             maxX = Math.Max(maxX, n.X + NodeLayout.Width);
@@ -438,8 +438,8 @@ public partial class EditorView : UserControl
         {
             minX = Math.Min(minX, e.X);
             minY = Math.Min(minY, e.Y);
-            maxX = Math.Max(maxX, e.X + 180);
-            maxY = Math.Max(maxY, e.Y + 80);
+            maxX = Math.Max(maxX, e.X + NodeLayout.EntityWidth);
+            maxY = Math.Max(maxY, e.Y + NodeLayout.EntityHeight);
         }
 
         const double margin = 60;

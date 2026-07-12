@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Tshin.ViewModels">
 
     <!-- ============ Buttons ============ -->
     <Style Selector="Button">
@@ -227,7 +228,7 @@
     <!-- ============ Canvas cards (nodes & entities) ============ -->
     <!-- Shared chrome; only the accent differs between node and entity. -->
     <Style Selector="Border.card">
-        <Setter Property="Width" Value="240" />
+        <Setter Property="Width" Value="{x:Static vm:NodeLayout.Width}" />
         <Setter Property="Background" Value="{StaticResource CardBgBrush}" />
         <Setter Property="CornerRadius" Value="{StaticResource CardRadius}" />
         <Setter Property="BorderThickness" Value="2" />

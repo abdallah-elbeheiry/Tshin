@@ -26,8 +26,20 @@ public static class NodeLayout
     public const double ChoiceRowHeight = 40;
     public const double PinRadius = 6;
 
+    // Non-choice vertical chrome below the choice rows: the "+ choice" button and its
+    // surrounding margins. Added on top of header + text + choice rows to get card height.
+    public const double CardChromeHeight = 44;
+
+    // Approximate hit/fit box for an entity card (blue node-like card).
+    public const double EntityWidth = 180;
+    public const double EntityHeight = 80;
+
     /// <summary>Y (relative to node top) where the first choice row begins.</summary>
     public const double ChoicesTop = HeaderHeight + TextAreaHeight;
+
+    /// <summary>Full rendered height of a node card, including header, text, choices, and chrome.</summary>
+    public static double NodeHeight(NodeViewModel n)
+        => ChoicesTop + n.Choices.Count * ChoiceRowHeight + CardChromeHeight;
 
     public static double OutputPinX(NodeViewModel n) => n.X + Width;
 

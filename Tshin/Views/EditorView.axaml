@@ -311,8 +311,8 @@
                                 <Border Classes="card node"
                                         Classes.selected="{Binding IsSelected}">
                                     <StackPanel>
-                                        <!-- Header (height 34) -->
-                                        <Panel Height="34" PointerPressed="OnNodeHeaderPressed">
+                                        <!-- Header -->
+                                        <Panel Height="{x:Static vm:NodeLayout.HeaderHeight}" PointerPressed="OnNodeHeaderPressed">
                                             <Border CornerRadius="10,10,0,0" Background="{StaticResource HeaderOverlayBrush}" />
                                             <TextBlock Text="{Binding Id}" Margin="14,0" VerticalAlignment="Center"
                                                        FontWeight="SemiBold" FontSize="13"
@@ -325,8 +325,8 @@
                                                      PointerPressed="OnInputPinPressed" />
                                         </Panel>
 
-                                        <!-- Display text (height 64) -->
-                                        <Border Height="64" Padding="8,4">
+                                        <!-- Display text -->
+                                        <Border Height="{x:Static vm:NodeLayout.TextAreaHeight}" Padding="8,4">
                                             <TextBox Text="{Binding DisplayText}" TextWrapping="Wrap"
                                                      AcceptsReturn="True" FontSize="12" BorderThickness="0"
                                                      Background="Transparent" Padding="4" />
@@ -336,7 +336,7 @@
                                         <ItemsControl ItemsSource="{Binding Choices}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate x:DataType="vm:ChoiceViewModel">
-                                                    <Panel Height="40">
+                                                    <Panel Height="{x:Static vm:NodeLayout.ChoiceRowHeight}">
                                                         <!-- Each choice is its own block -->
                                                         <Border Margin="8,5,14,5"
                                                                 Background="{StaticResource ControlBgBrush}"
