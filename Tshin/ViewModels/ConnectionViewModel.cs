@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using Avalonia;
@@ -15,44 +14,45 @@ namespace Tshin.ViewModels;
 /// </summary>
 public sealed class ConnectionViewModel : ViewModelBase, IDisposable
 {
-    private static readonly IReadOnlyList<IBrush> WirePalette;
-    private static int _nextColorIndex;
+    /// <summary>Number of distinct wire hues (WireBrush0..WireBrush6).</summary>
+    public const int PaletteCount = 7;
 
-    static ConnectionViewModel()
-    {
-        var keys = new[] { "WireBrush0", "WireBrush1", "WireBrush2", "WireBrush3",
-                           "WireBrush4", "WireBrush5", "WireBrush6" };
-        var list = new List<IBrush>();
-        foreach (var t in keys)
-        {
-            IBrush? brush = null;
-            if (Application.Current != null &&
-                Application.Current.TryGetResource(t, null, out var res) &&
-                res is IBrush b)
-            {
-                brush = b;
-            }
-
-            if (brush != null) list.Add(brush);
-        }
-        WirePalette = list.AsReadOnly();
-    }
+    private readonly int _colorIndex;
 
     public NodeViewModel Source { get; }
     public NodeViewModel Target { get; }
     public int ChoiceIndex { get; }
 
-    public IBrush Stroke { get; }
+    /// <summary>
+    /// Resolved live from the theme dictionary so it tracks a light/dark switch instead of
+    /// being frozen at construction. The index is supplied deterministically by the editor.
+    /// </summary>
+    public IBrush Stroke => ResolveStroke();
 
-    public ConnectionViewModel(NodeViewModel source, NodeViewModel target, int choiceIndex)
+    public ConnectionViewModel(NodeViewModel source, NodeViewModel target, int choiceIndex, int colorIndex)
     {
         Source = source;
         Target = target;
         ChoiceIndex = choiceIndex;
-        Stroke = WirePalette[_nextColorIndex++ % WirePalette.Count];
+        _colorIndex = ((colorIndex % PaletteCount) + PaletteCount) % PaletteCount;
         Source.PropertyChanged += OnEndpointChanged;
         Target.PropertyChanged += OnEndpointChanged;
+
+        if (Application.Current is { } app)
+            app.ActualThemeVariantChanged += OnThemeVariantChanged;
     }
+
+    private IBrush ResolveStroke()
+    {
+        var key = "WireBrush" + _colorIndex;
+        if (Application.Current is { } app &&
+            app.TryGetResource(key, app.ActualThemeVariant, out var res) && res is IBrush b)
+            return b;
+        return Brushes.Gray;
+    }
+
+    private void OnThemeVariantChanged(object? sender, EventArgs e)
+        => OnPropertyChanged(nameof(Stroke));
 
     private void OnEndpointChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -92,5 +92,7 @@ public sealed class ConnectionViewModel : ViewModelBase, IDisposable
     {
         Source.PropertyChanged -= OnEndpointChanged;
         Target.PropertyChanged -= OnEndpointChanged;
+        if (Application.Current is { } app)
+            app.ActualThemeVariantChanged -= OnThemeVariantChanged;
     }
 }

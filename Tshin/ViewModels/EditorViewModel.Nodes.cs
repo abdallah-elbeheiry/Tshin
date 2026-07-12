@@ -217,13 +217,16 @@ public partial class EditorViewModel
         foreach (var c in Connections) c.Dispose();
         Connections.Clear();
 
+        // Deterministic colour index: a running counter in stable (node, choice) order,
+        // so the same graph always yields the same wire colours (no static leak).
+        var colorIndex = 0;
         foreach (var node in Nodes)
         {
             for (var i = 0; i < node.Choices.Count; i++)
             {
                 var target = node.Choices[i].Target;
                 if (target is not null)
-                    Connections.Add(new ConnectionViewModel(node, target, i));
+                    Connections.Add(new ConnectionViewModel(node, target, i, colorIndex++));
             }
         }
     }
