@@ -83,6 +83,27 @@
         <Setter Property="TextElement.Foreground" Value="White" />
     </Style>
 
+    <!-- ============ Vector glyphs hosted inside buttons ============ -->
+    <!-- A Path with Classes="glyph" replaces pixel-font characters (✕ ⚙ − +) so icons render
+         crisply and follow the button's state colouring like the old text glyphs did. -->
+    <Style Selector="Path.glyph">
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="Width" Value="13" />
+        <Setter Property="Height" Value="13" />
+        <Setter Property="Fill" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button:pointerover Path.glyph">
+        <Setter Property="Fill" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.danger Path.glyph">
+        <Setter Property="Fill" Value="{DynamicResource DangerBrush}" />
+    </Style>
+    <Style Selector="Button.danger:pointerover Path.glyph">
+        <Setter Property="Fill" Value="White" />
+    </Style>
+
     <!-- ============ ToggleButton (visibility eye) ============ -->
     <!-- No background, fixed square hit area so the icon doesn't shift on toggle. -->
     <Style Selector="ToggleButton.visibility">

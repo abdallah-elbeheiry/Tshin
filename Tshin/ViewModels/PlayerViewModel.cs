@@ -127,11 +127,6 @@ public partial class PlayerViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isEntitiesPanelExpanded = true;
 
-    public string EntitiesToggleGlyph => IsEntitiesPanelExpanded ? "▾" : "▸";
-
-    partial void OnIsEntitiesPanelExpandedChanged(bool value)
-        => OnPropertyChanged(nameof(EntitiesToggleGlyph));
-
     [RelayCommand]
     private void ToggleEntitiesPanel() => IsEntitiesPanelExpanded = !IsEntitiesPanelExpanded;
 

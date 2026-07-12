@@ -28,9 +28,11 @@
                         <TextBlock Grid.Column="0" Text="Condition" FontSize="10"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="✕" Classes="icon danger"
+                        <Button Grid.Column="1" Classes="icon danger"
                                 Command="{Binding RemoveSelfCommand}"
-                                ToolTip.Tip="Remove condition" />
+                                ToolTip.Tip="Remove condition">
+                            <Path Classes="glyph" Data="{StaticResource CloseIcon}" />
+                        </Button>
                     </Grid>
 
                     <ComboBox ItemsSource="{Binding AvailableEntities}"
@@ -77,9 +79,11 @@
                         <TextBlock Grid.Column="1" Text="group" FontSize="10" Margin="6,0"
                                    VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextSecondaryBrush}" />
-                        <Button Grid.Column="2" Content="✕" Classes="icon danger"
+                        <Button Grid.Column="2" Classes="icon danger"
                                 Command="{Binding RemoveSelfCommand}"
-                                ToolTip.Tip="Remove group" />
+                                ToolTip.Tip="Remove group">
+                            <Path Classes="glyph" Data="{StaticResource CloseIcon}" />
+                        </Button>
                     </Grid>
 
                     <!-- Recursive children: no ItemTemplate → implicit templates apply -->
@@ -128,7 +132,12 @@
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
                             HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Button Classes="ghost" Content="+ Add ▾">
+                    <Button Classes="ghost">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="Add" VerticalAlignment="Center" />
+                            <Path Classes="glyph" Width="9" Height="9" VerticalAlignment="Center"
+                                  Data="{StaticResource ChevronDownIcon}" />
+                        </StackPanel>
                         <Button.Flyout>
                             <MenuFlyout Placement="BottomEdgeAlignedLeft">
                                 <MenuItem Header="Node" Command="{Binding AddNodeCommand}" />
@@ -146,10 +155,14 @@
                     <ToggleButton Content="Snap" Classes="ghost" IsChecked="{Binding SnapToGrid}"
                                   ToolTip.Tip="Snap nodes to grid" />
                     <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,2" />
-                    <Button Content="−" Command="{Binding ZoomOutCommand}" Classes="ghost" ToolTip.Tip="Zoom out" />
+                    <Button Command="{Binding ZoomOutCommand}" Classes="ghost" ToolTip.Tip="Zoom out">
+                        <Path Classes="glyph" Data="{StaticResource MinusIcon}" />
+                    </Button>
                     <Button Content="Fit" Command="{Binding ZoomToFitCommand}" Classes="ghost"
                             ToolTip.Tip="Zoom to fit" />
-                    <Button Content="+" Command="{Binding ZoomInCommand}" Classes="ghost" ToolTip.Tip="Zoom in" />
+                    <Button Command="{Binding ZoomInCommand}" Classes="ghost" ToolTip.Tip="Zoom in">
+                        <Path Classes="glyph" Data="{StaticResource PlusIcon}" />
+                    </Button>
                     <Button Content="Save" Click="OnSaveClick" Classes="accent" />
                     <Button Content="Export" Click="OnExportClick" Classes="accent" />
                 </StackPanel>
@@ -361,12 +374,16 @@
                                                                          VerticalContentAlignment="Center" />
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal"
                                                                             Spacing="2" VerticalAlignment="Center">
-                                                                    <Button Content="⚙" Classes="icon"
+                                                                    <Button Classes="icon"
                                                                             Command="{Binding OpenInspectorCommand}"
-                                                                            ToolTip.Tip="Edit choice" />
-                                                                    <Button Content="✕" Classes="icon danger"
+                                                                            ToolTip.Tip="Edit choice">
+                                                                        <Path Classes="glyph" Data="{StaticResource GearIcon}" />
+                                                                    </Button>
+                                                                    <Button Classes="icon danger"
                                                                             Command="{Binding RemoveSelfCommand}"
-                                                                            ToolTip.Tip="Remove choice" />
+                                                                            ToolTip.Tip="Remove choice">
+                                                                        <Path Classes="glyph" Data="{StaticResource CloseIcon}" />
+                                                                    </Button>
                                                                 </StackPanel>
                                                             </Grid>
                                                         </Border>
@@ -570,9 +587,11 @@
                                                     <Grid ColumnDefinitions="*,Auto">
                                                         <TextBlock Grid.Column="0" FontSize="11" FontWeight="SemiBold"
                                                                    Text="{Binding Name}" VerticalAlignment="Center" />
-                                                        <Button Grid.Column="1" Content="✕" Classes="icon danger"
+                                                        <Button Grid.Column="1" Classes="icon danger"
                                                                 Command="{Binding RemoveSelfCommand}"
-                                                                ToolTip.Tip="Remove component" />
+                                                                ToolTip.Tip="Remove component">
+                                                            <Path Classes="glyph" Data="{StaticResource CloseIcon}" />
+                                                        </Button>
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>

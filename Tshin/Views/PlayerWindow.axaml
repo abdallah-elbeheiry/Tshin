@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Tshin.ViewModels"
+        xmlns:conv="clr-namespace:Tshin.Converters"
         x:Class="Tshin.Views.PlayerWindow"
         x:DataType="vm:PlayerViewModel"
         Title="Tshin — Play"
@@ -8,6 +9,10 @@
         MinWidth="480" MinHeight="340"
         Background="{DynamicResource WindowBgBrush}"
         WindowStartupLocation="CenterOwner">
+
+    <Window.Resources>
+        <conv:BoolToGeometryConverter x:Key="BoolToGeometry" />
+    </Window.Resources>
 
     <Grid ColumnDefinitions="*,Auto">
         <!-- Story area -->
@@ -61,9 +66,8 @@
                         HorizontalContentAlignment="Left" Padding="14,12"
                         Command="{Binding ToggleEntitiesPanelCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBlock Text="{Binding EntitiesToggleGlyph}" FontSize="11"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <Path Classes="glyph" VerticalAlignment="Center"
+                              Data="{Binding IsEntitiesPanelExpanded, Converter={StaticResource BoolToGeometry}, ConverterParameter='ChevronDownIcon|ChevronRightIcon'}" />
                         <TextBlock Text="Entities" FontSize="13" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimaryBrush}" />
                     </StackPanel>

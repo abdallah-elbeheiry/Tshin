@@ -125,19 +125,17 @@ public class PlayerViewModelTests
     }
 
     [AvaloniaFact]
-    public void Toggle_entities_panel_flips_state_and_glyph()
+    public void Toggle_entities_panel_flips_expanded_state()
     {
         var editor = TestFactory.Editor();
         var start = editor.CreateNodeAt(0, 0);
         var player = new PlayerViewModel(start, editor.Entities);
 
         Assert.True(player.IsEntitiesPanelExpanded);
-        var open = player.EntitiesToggleGlyph;
 
         player.ToggleEntitiesPanelCommand.Execute(null);
 
         Assert.False(player.IsEntitiesPanelExpanded);
-        Assert.NotEqual(open, player.EntitiesToggleGlyph);
     }
 
     [AvaloniaFact]
