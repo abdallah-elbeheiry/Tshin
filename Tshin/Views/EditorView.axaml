@@ -22,11 +22,11 @@
         <!-- Atomic condition: entity → component → operator → value -->
         <DataTemplate x:DataType="vm:AtomicConditionViewModel">
             <Border Margin="0,2" Padding="6"
-                    Background="{StaticResource ControlBgBrush}" CornerRadius="6">
+                    Background="{DynamicResource ControlBgBrush}" CornerRadius="6">
                 <StackPanel Spacing="4">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Grid.Column="0" Text="Condition" FontSize="10"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center" />
                         <Button Grid.Column="1" Content="✕" Classes="icon danger"
                                 Command="{Binding RemoveSelfCommand}"
@@ -67,8 +67,8 @@
         <!-- Logical group: AND/OR selector + recursive children + add buttons -->
         <DataTemplate x:DataType="vm:LogicalGroupViewModel">
             <Border Margin="0,2" Padding="6"
-                    Background="{StaticResource ControlBgBrush}" CornerRadius="6"
-                    BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="1">
+                    Background="{DynamicResource ControlBgBrush}" CornerRadius="6"
+                    BorderBrush="{DynamicResource SeparatorBrush}" BorderThickness="1">
                 <StackPanel Spacing="4">
                     <Grid ColumnDefinitions="Auto,*,Auto">
                         <ComboBox Grid.Column="0" ItemsSource="{Binding LogicOptions}"
@@ -76,7 +76,7 @@
                                   FontSize="11" ToolTip.Tip="AND = all must hold; OR = any holds" />
                         <TextBlock Grid.Column="1" Text="group" FontSize="10" Margin="6,0"
                                    VerticalAlignment="Center"
-                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
                         <Button Grid.Column="2" Content="✕" Classes="icon danger"
                                 Command="{Binding RemoveSelfCommand}"
                                 ToolTip.Tip="Remove group" />
@@ -110,19 +110,19 @@
 
     <DockPanel>
         <!-- ============ TOOLBAR ============ -->
-        <Border DockPanel.Dock="Top" Background="{StaticResource ContentBgBrush}"
-                BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="0,0,0,1"
-                Padding="16,10" Margin="{StaticResource TitleBarInset}">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource ContentBgBrush}"
+                BorderBrush="{DynamicResource SeparatorBrush}" BorderThickness="0,0,0,1"
+                Padding="16,10" Margin="{DynamicResource TitleBarInset}">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <TextBox Text="{Binding ProjectName}" Classes="title"
                              FontSize="15" FontWeight="SemiBold"
-                             Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"
+                             Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"
                              MinWidth="60" MaxWidth="280"
                              ToolTip.Tip="Rename epic" />
-                    <Border Background="{StaticResource ControlBgBrush}" CornerRadius="4" Padding="6,1"
+                    <Border Background="{DynamicResource ControlBgBrush}" CornerRadius="4" Padding="6,1"
                             VerticalAlignment="Center" IsVisible="{Binding IsDirty}">
-                        <TextBlock Text="Edited" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" />
+                        <TextBlock Text="Edited" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" />
                     </Border>
                 </StackPanel>
 
@@ -137,7 +137,7 @@
                         </Button.Flyout>
                     </Button>
                     <Button Content="Run" Command="{Binding RunCommand}" Classes="ghost" />
-                    <Border Width="1" Background="{StaticResource SeparatorBrush}" Margin="4,2" />
+                    <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,2" />
                     <Button Content="Undo" Command="{Binding UndoCommand}" Classes="ghost" ToolTip.Tip="Undo (Ctrl/Cmd+Z)" />
                     <Button Content="Redo" Command="{Binding RedoCommand}" Classes="ghost" ToolTip.Tip="Redo (Ctrl+Y / Cmd+Shift+Z)" />
                 </StackPanel>
@@ -145,7 +145,7 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                     <ToggleButton Content="Snap" Classes="ghost" IsChecked="{Binding SnapToGrid}"
                                   ToolTip.Tip="Snap nodes to grid" />
-                    <Border Width="1" Background="{StaticResource SeparatorBrush}" Margin="4,2" />
+                    <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,2" />
                     <Button Content="−" Command="{Binding ZoomOutCommand}" Classes="ghost" ToolTip.Tip="Zoom out" />
                     <Button Content="Fit" Command="{Binding ZoomToFitCommand}" Classes="ghost"
                             ToolTip.Tip="Zoom to fit" />
@@ -158,8 +158,11 @@
 
         <!-- ============ CANVAS + INSPECTOR ============ -->
         <Grid>
+            <!-- The node canvas keeps a fixed dark identity on every platform and in either
+                 OS theme; only the chrome, toolbar, and inspector follow the system theme. -->
+            <ThemeVariantScope RequestedThemeVariant="Dark">
             <!-- Viewport: receives pan / zoom / background interactions -->
-            <Border x:Name="Viewport" Background="{StaticResource CanvasBgBrush}" ClipToBounds="True"
+            <Border x:Name="Viewport" Background="{DynamicResource CanvasBgBrush}" ClipToBounds="True"
                     PointerPressed="OnViewportPressed" PointerMoved="OnViewportMoved"
                     PointerReleased="OnViewportReleased" PointerWheelChanged="OnViewportWheel">
                 <Border.ContextMenu>
@@ -212,7 +215,7 @@
                     </ItemsControl>
 
                     <!-- Temp wire shown while dragging a connection -->
-                    <Path x:Name="TempWire" Stroke="{StaticResource AccentHoverBrush}" StrokeThickness="2"
+                    <Path x:Name="TempWire" Stroke="{DynamicResource AccentHoverBrush}" StrokeThickness="2"
                           StrokeDashArray="4,3" IsVisible="False" />
 
                     <!-- Entity cards (node-like layout, blue theme) -->
@@ -236,7 +239,7 @@
                                     <StackPanel>
                                         <!-- Header (entity accent) — draggable -->
                                         <Panel Height="34" PointerPressed="OnEntityHeaderPressed">
-                                            <Border CornerRadius="10,10,0,0" Background="{StaticResource EntityHeaderBrush}" />
+                                            <Border CornerRadius="10,10,0,0" Background="{DynamicResource EntityHeaderBrush}" />
                                             <Grid ColumnDefinitions="*,Auto" Margin="14,0,6,0">
                                                 <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"
                                                            FontWeight="SemiBold" FontSize="13" Foreground="White" />
@@ -256,12 +259,12 @@
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate x:DataType="vm:ComponentViewModel">
                                                     <Border Margin="8,3,8,0" Padding="8,4"
-                                                            Background="{StaticResource ControlBgBrush}"
+                                                            Background="{DynamicResource ControlBgBrush}"
                                                             CornerRadius="6" Classes="row"
                                                             Classes.hidden="{Binding !Visible}"
                                                             PointerPressed="OnComponentBadgePressed">
                                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
-                                                            <Border Grid.Column="0" Background="{StaticResource EntityAccentBrush}"
+                                                            <Border Grid.Column="0" Background="{DynamicResource EntityAccentBrush}"
                                                                     CornerRadius="3" Width="18" Height="18"
                                                                     VerticalAlignment="Center">
                                                                 <TextBlock FontSize="10" FontWeight="Bold" Foreground="White"
@@ -270,14 +273,14 @@
                                                                            ToolTip.Tip="{Binding ComponentType}" />
                                                             </Border>
                                                             <TextBlock Grid.Column="1" FontSize="11" FontWeight="Medium"
-                                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                                       Foreground="{DynamicResource TextPrimaryBrush}"
                                                                        Text="{Binding Name}" VerticalAlignment="Center" />
                                                             <ToggleButton Grid.Column="2" Classes="visibility"
                                                                           IsChecked="{Binding Visible}"
                                                                           VerticalAlignment="Center"
                                                                           ToolTip.Tip="Shown at runtime">
                                                                 <Path Width="12" Height="12" Stretch="Uniform"
-                                                                      Fill="{StaticResource TextSecondaryBrush}"
+                                                                      Fill="{DynamicResource TextSecondaryBrush}"
                                                                       Data="{Binding Visible, Converter={StaticResource BoolToGeometry}, ConverterParameter='EyeOpenIcon|EyeClosedIcon'}" />
                                                             </ToggleButton>
                                                         </Grid>
@@ -316,15 +319,15 @@
                                     <StackPanel>
                                         <!-- Header -->
                                         <Panel Height="{x:Static vm:NodeLayout.HeaderHeight}" PointerPressed="OnNodeHeaderPressed">
-                                            <Border CornerRadius="10,10,0,0" Background="{StaticResource HeaderOverlayBrush}" />
+                                            <Border CornerRadius="10,10,0,0" Background="{DynamicResource HeaderOverlayBrush}" />
                                             <TextBlock Text="{Binding Id}" Margin="14,0" VerticalAlignment="Center"
                                                        FontWeight="SemiBold" FontSize="13"
-                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" />
                                             <!-- Input pin -->
                                             <Ellipse Width="12" Height="12" Margin="-6,0,0,0"
                                                      HorizontalAlignment="Left" VerticalAlignment="Center"
-                                                     Fill="{StaticResource ControlBgBrush}"
-                                                     Stroke="{StaticResource AccentBrush}" StrokeThickness="2"
+                                                     Fill="{DynamicResource ControlBgBrush}"
+                                                     Stroke="{DynamicResource AccentBrush}" StrokeThickness="2"
                                                      PointerPressed="OnInputPinPressed" />
                                         </Panel>
 
@@ -342,12 +345,12 @@
                                                     <Panel Height="{x:Static vm:NodeLayout.ChoiceRowHeight}">
                                                         <!-- Each choice is its own block -->
                                                         <Border Margin="8,5,14,5"
-                                                                Background="{StaticResource ControlBgBrush}"
+                                                                Background="{DynamicResource ControlBgBrush}"
                                                                 CornerRadius="6" Padding="6,0"
                                                                 Classes.selected="{Binding IsSelected}">
                                                             <Border.Styles>
                                                                 <Style Selector="Border.selected">
-                                                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                                                                     <Setter Property="BorderThickness" Value="2" />
                                                                 </Style>
                                                             </Border.Styles>
@@ -370,7 +373,7 @@
                                                         <!-- Output pin -->
                                                         <Ellipse Width="12" Height="12" Margin="0,0,-6,0"
                                                                  HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                 Fill="{StaticResource AccentBrush}"
+                                                                 Fill="{DynamicResource AccentBrush}"
                                                                  PointerPressed="OnOutputPinPressed" />
                                                     </Panel>
                                                 </DataTemplate>
@@ -387,6 +390,7 @@
                     </ItemsControl>
                 </Panel>
             </Border>
+            </ThemeVariantScope>
 
             <!-- ============ RIGHT INSPECTOR (single host) ============ -->
             <!-- Drag the grip on the left edge to resize (OnInspectorResize clamps the
@@ -401,14 +405,14 @@
                         <ControlTemplate>
                             <Border Background="Transparent">
                                 <Rectangle Width="1" HorizontalAlignment="Center"
-                                           Fill="{StaticResource SeparatorBrush}" />
+                                           Fill="{DynamicResource SeparatorBrush}" />
                             </Border>
                         </ControlTemplate>
                     </Thumb.Template>
                 </Thumb>
                 <Border Grid.Column="1" x:Name="InspectorPanel" Width="280" Margin="0"
-                    Background="{StaticResource ContentBgBrush}"
-                    BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="1,0,0,0">
+                    Background="{DynamicResource ContentBgBrush}"
+                    BorderBrush="{DynamicResource SeparatorBrush}" BorderThickness="1,0,0,0">
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                     <ContentControl Content="{Binding SelectedInspectorTarget}"
                                     HorizontalAlignment="Left" MinWidth="278">
@@ -442,7 +446,7 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:CommandViewModel">
                                                 <Border Margin="0,2" Padding="6"
-                                                        Background="{StaticResource ControlBgBrush}"
+                                                        Background="{DynamicResource ControlBgBrush}"
                                                         CornerRadius="6">
                                                     <StackPanel Spacing="4">
                                                         <ComboBox ItemsSource="{Binding AvailableEntities}"
@@ -478,7 +482,7 @@
 
                                                         <!-- Condition (optional): only run this command when it holds -->
                                                         <TextBlock Text="Condition (optional)" FontSize="10"
-                                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                                                    Margin="0,6,0,0" />
 
                                                         <Button Content="+ Add condition" Classes="ghost" FontSize="10"
@@ -550,7 +554,7 @@
                                                       VerticalAlignment="Center"
                                                       ToolTip.Tip="Shown at runtime">
                                             <Path Width="14" Height="14" Stretch="Uniform"
-                                                  Fill="{StaticResource TextSecondaryBrush}"
+                                                  Fill="{DynamicResource TextSecondaryBrush}"
                                                   Data="{Binding Visible, Converter={StaticResource BoolToGeometry}, ConverterParameter='EyeOpenIcon|EyeClosedIcon'}" />
                                         </ToggleButton>
                                     </Grid>
@@ -561,7 +565,7 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:ComponentViewModel">
                                                 <Border Margin="0,2" Padding="6"
-                                                        Background="{StaticResource ControlBgBrush}"
+                                                        Background="{DynamicResource ControlBgBrush}"
                                                         CornerRadius="6">
                                                     <Grid ColumnDefinitions="*,Auto">
                                                         <TextBlock Grid.Column="0" FontSize="11" FontWeight="SemiBold"
@@ -599,7 +603,7 @@
                                                       VerticalAlignment="Center"
                                                       ToolTip.Tip="Shown at runtime">
                                             <Path Width="14" Height="14" Stretch="Uniform"
-                                                  Fill="{StaticResource TextSecondaryBrush}"
+                                                  Fill="{DynamicResource TextSecondaryBrush}"
                                                   Data="{Binding Visible, Converter={StaticResource BoolToGeometry}, ConverterParameter='EyeOpenIcon|EyeClosedIcon'}" />
                                         </ToggleButton>
                                     </Grid>
@@ -636,7 +640,7 @@
                                                       VerticalAlignment="Center"
                                                       ToolTip.Tip="Shown at runtime">
                                             <Path Width="14" Height="14" Stretch="Uniform"
-                                                  Fill="{StaticResource TextSecondaryBrush}"
+                                                  Fill="{DynamicResource TextSecondaryBrush}"
                                                   Data="{Binding Visible, Converter={StaticResource BoolToGeometry}, ConverterParameter='EyeOpenIcon|EyeClosedIcon'}" />
                                         </ToggleButton>
                                     </Grid>
@@ -667,7 +671,7 @@
                                                       VerticalAlignment="Center"
                                                       ToolTip.Tip="Shown at runtime">
                                             <Path Width="14" Height="14" Stretch="Uniform"
-                                                  Fill="{StaticResource TextSecondaryBrush}"
+                                                  Fill="{DynamicResource TextSecondaryBrush}"
                                                   Data="{Binding Visible, Converter={StaticResource BoolToGeometry}, ConverterParameter='EyeOpenIcon|EyeClosedIcon'}" />
                                         </ToggleButton>
                                     </Grid>
@@ -689,10 +693,10 @@
             <!-- Empty-graph hint -->
             <StackPanel IsVisible="{Binding !HasNodes}" IsHitTestVisible="False"
                         VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="6">
-                <TextBlock Text="No nodes yet" FontSize="15" Foreground="{StaticResource TextSecondaryBrush}"
+                <TextBlock Text="No nodes yet" FontSize="15" Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center" />
                 <TextBlock Text="Right-click the canvas or press “+ Add Node”."
-                           FontSize="12" Foreground="{StaticResource TextTertiaryBrush}"
+                           FontSize="12" Foreground="{DynamicResource TextTertiaryBrush}"
                            HorizontalAlignment="Center" />
             </StackPanel>
 

@@ -6,24 +6,24 @@
         Title="Tshin — Play"
         Width="700" Height="520"
         MinWidth="480" MinHeight="340"
-        Background="{StaticResource WindowBgBrush}"
+        Background="{DynamicResource WindowBgBrush}"
         WindowStartupLocation="CenterOwner">
 
     <Grid ColumnDefinitions="*,Auto">
         <!-- Story area -->
-        <Border Grid.Column="0" Margin="24" Background="{StaticResource CardBgBrush}"
+        <Border Grid.Column="0" Margin="24" Background="{DynamicResource CardBgBrush}"
                 CornerRadius="14" Padding="28" BoxShadow="0 8 32 0 #60000000">
             <DockPanel>
                 <!-- Story text -->
                 <TextBlock DockPanel.Dock="Top" Text="{Binding CurrentNode.DisplayText}"
                            FontSize="20" TextWrapping="Wrap" TextAlignment="Center"
-                           Foreground="{StaticResource TextPrimaryBrush}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
                            Margin="0,0,0,24" />
 
                 <!-- End-of-branch -->
                 <StackPanel DockPanel.Dock="Bottom" IsVisible="{Binding IsEnd}" Spacing="14">
                     <TextBlock Text="The End" FontSize="14" FontStyle="Italic"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                HorizontalAlignment="Center" />
                     <Button Content="Restart" Classes="accent" HorizontalAlignment="Center"
                             Command="{Binding RestartCommand}" />
@@ -52,8 +52,8 @@
         </Border>
 
         <!-- Entities panel (collapsible) -->
-        <Border Grid.Column="1" Background="{StaticResource ContentBgBrush}"
-                BorderBrush="{StaticResource SeparatorBrush}" BorderThickness="1,0,0,0"
+        <Border Grid.Column="1" Background="{DynamicResource ContentBgBrush}"
+                BorderBrush="{DynamicResource SeparatorBrush}" BorderThickness="1,0,0,0"
                 IsVisible="{Binding HasVisibleEntities}">
             <DockPanel MinWidth="180">
                 <!-- Header toggle -->
@@ -63,9 +63,9 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding EntitiesToggleGlyph}" FontSize="11"
                                    VerticalAlignment="Center"
-                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
                         <TextBlock Text="Entities" FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
                     </StackPanel>
                 </Button>
 
@@ -76,23 +76,23 @@
                             <DataTemplate x:DataType="vm:EntityViewModel">
                                 <StackPanel Margin="12,4">
                                     <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
                                                Margin="0,4,0,4" />
                                     <ItemsControl ItemsSource="{Binding Components}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:ComponentViewModel">
                                                 <Border Margin="0,2" Padding="8,4"
-                                                        Background="{StaticResource ControlBgBrush}"
+                                                        Background="{DynamicResource ControlBgBrush}"
                                                         CornerRadius="4"
                                                         IsVisible="{Binding Visible}">
                                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                                         <TextBlock Grid.Column="0" Text="{Binding Name}"
                                                                    FontSize="11"
-                                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                                                    VerticalAlignment="Center" />
                                                         <TextBlock Grid.Column="1" Text="{Binding DisplayValue}"
                                                                    FontSize="11" FontWeight="SemiBold"
-                                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                                                    VerticalAlignment="Center" />
                                                     </Grid>
                                                 </Border>

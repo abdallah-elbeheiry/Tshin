@@ -21,7 +21,7 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid ColumnDefinitions="240,*" Background="{StaticResource WindowBgBrush}" DragDrop.AllowDrop="True">
+    <Grid ColumnDefinitions="240,*" Background="{DynamicResource WindowBgBrush}" DragDrop.AllowDrop="True">
 
         <!-- ============ SIDEBAR ============ -->
         <Panel Grid.Column="0">
@@ -32,10 +32,10 @@
                 </ExperimentalAcrylicBorder.Material>
             </ExperimentalAcrylicBorder>
 
-            <DockPanel Margin="{StaticResource TitleBarInset}">
+            <DockPanel Margin="{DynamicResource TitleBarInset}">
                 <!-- Header -->
                 <TextBlock DockPanel.Dock="Top" Text="Projects" FontSize="13" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="16,8,16,8" />
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="16,8,16,8" />
 
                 <!-- Search -->
                 <TextBox DockPanel.Dock="Top" Text="{Binding SearchText}" PlaceholderText="Search"
@@ -59,15 +59,15 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Medium"
                                                TextTrimming="CharacterEllipsis" />
-                                    <Border Background="{StaticResource ControlBgBrush}" CornerRadius="4"
+                                    <Border Background="{DynamicResource ControlBgBrush}" CornerRadius="4"
                                             Padding="4,0" VerticalAlignment="Center"
                                             IsVisible="{Binding IsImported}">
                                         <TextBlock Text="imported" FontSize="9"
-                                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" />
                                     </Border>
                                 </StackPanel>
                                 <TextBlock Text="{Binding Description}" FontSize="11"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
                                            TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                         </DataTemplate>
@@ -77,7 +77,7 @@
         </Panel>
 
         <!-- ============ RIGHT PANE ============ -->
-        <Panel Grid.Column="1" Background="{StaticResource ContentBgBrush}">
+        <Panel Grid.Column="1" Background="{DynamicResource ContentBgBrush}">
             <!-- Editor -->
             <ContentControl Content="{Binding CurrentEditor}" IsVisible="{Binding HasEditor}" />
 
@@ -85,9 +85,9 @@
             <StackPanel IsVisible="{Binding !HasEditor}" VerticalAlignment="Center"
                         HorizontalAlignment="Center" Spacing="10">
                 <TextBlock Text="Tshin" FontSize="40" FontWeight="Bold"
-                           Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                           Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" />
                 <TextBlock Text="Select a project from the sidebar, or create a new one."
-                           Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                           Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
             </StackPanel>
         </Panel>
 

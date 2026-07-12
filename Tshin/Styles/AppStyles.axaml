@@ -4,10 +4,10 @@
 
     <!-- ============ Buttons ============ -->
     <Style Selector="Button">
-        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource ControlBgBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="{StaticResource ControlRadius}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource ControlRadius}" />
         <Setter Property="Padding" Value="12,6" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Cursor" Value="Hand" />
@@ -21,47 +21,47 @@
         </Setter>
     </Style>
     <Style Selector="Button:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="{StaticResource CardBgHoverBrush}" />
-        <Setter Property="TextElement.Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource CardBgHoverBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
 
     <!-- Accent / primary -->
     <Style Selector="Button.accent">
-        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
         <Setter Property="Foreground" Value="White" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="Button.accent:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="{StaticResource AccentHoverBrush}" />
+        <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}" />
         <Setter Property="TextElement.Foreground" Value="White" />
     </Style>
 
     <!-- Ghost / toolbar buttons — subtle shade at rest, solid on hover -->
     <Style Selector="Button.ghost">
         <Setter Property="Background" Value="#18FFFFFF" />
-        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
         <Setter Property="Padding" Value="9,6" />
     </Style>
     <Style Selector="Button.ghost:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
-        <Setter Property="TextElement.Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource ControlBgBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
 
     <!-- Destructive / danger — dark-red tinted shade at rest, solid red on hover -->
     <Style Selector="Button.danger">
-        <Setter Property="Background" Value="{StaticResource DangerSubtleBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+        <Setter Property="Background" Value="{DynamicResource DangerSubtleBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="Button.danger:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="{StaticResource DangerBrush}" />
+        <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
         <Setter Property="TextElement.Foreground" Value="White" />
     </Style>
 
     <!-- Square icon buttons (✕, ⚙, eye) — subtle shade at rest -->
     <Style Selector="Button.icon">
         <Setter Property="Background" Value="#18FFFFFF" />
-        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Width" Value="24" />
         <Setter Property="Height" Value="24" />
@@ -71,15 +71,15 @@
         <Setter Property="UseLayoutRounding" Value="True" />
     </Style>
     <Style Selector="Button.icon:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
-        <Setter Property="TextElement.Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource ControlBgBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
     <Style Selector="Button.icon.danger">
-        <Setter Property="Background" Value="{StaticResource DangerSubtleBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+        <Setter Property="Background" Value="{DynamicResource DangerSubtleBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
     </Style>
     <Style Selector="Button.icon.danger:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="{StaticResource DangerBrush}" />
+        <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
         <Setter Property="TextElement.Foreground" Value="White" />
     </Style>
 
@@ -110,9 +110,9 @@
     <!-- ============ ToggleButton (ghost) ============ -->
     <Style Selector="ToggleButton.ghost">
         <Setter Property="Background" Value="#18FFFFFF" />
-        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="{StaticResource ControlRadius}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource ControlRadius}" />
         <Setter Property="Padding" Value="9,6" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Cursor" Value="Hand" />
@@ -124,26 +124,26 @@
         </Setter>
     </Style>
     <Style Selector="ToggleButton.ghost:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
-        <Setter Property="TextElement.Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource ControlBgBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
     <Style Selector="ToggleButton.ghost:checked /template/ ContentPresenter">
-        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
         <Setter Property="TextElement.Foreground" Value="White" />
     </Style>
 
     <!-- ============ TextBox ============ -->
     <Style Selector="TextBox">
-        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource ControlBgBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="BorderBrush" Value="Transparent" />
-        <Setter Property="CornerRadius" Value="{StaticResource ControlRadius}" />
-        <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
-        <Setter Property="SelectionBrush" Value="{StaticResource AccentBrush}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource ControlRadius}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}" />
     </Style>
     <Style Selector="TextBox:focus">
-        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
     </Style>
 
     <!-- Inline heading-style editable text (e.g. the epic title in the editor toolbar):
@@ -165,7 +165,7 @@
     </Style>
     <Style Selector="TextBox.title:focus /template/ Border#PART_BorderElement">
         <Setter Property="Background" Value="#1FFFFFFF" />
-        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
         <Setter Property="BorderThickness" Value="1" />
     </Style>
 
@@ -178,48 +178,48 @@
     <Style Selector="ListBox.sidebar ListBoxItem">
         <Setter Property="Padding" Value="10,8" />
         <Setter Property="Margin" Value="0,2" />
-        <Setter Property="CornerRadius" Value="{StaticResource ControlRadius}" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource ControlRadius}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
     <Style Selector="ListBox.sidebar ListBoxItem:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="{StaticResource CardBgBrush}" />
+        <Setter Property="Background" Value="{DynamicResource CardBgBrush}" />
     </Style>
     <Style Selector="ListBox.sidebar ListBoxItem:selected /template/ ContentPresenter">
-        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
     </Style>
 
     <!-- ============ ComboBox ============ -->
     <!-- Match the TextBox look so pickers sit consistently in the inspector. -->
     <Style Selector="ComboBox">
-        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource ControlBgBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="BorderBrush" Value="Transparent" />
-        <Setter Property="CornerRadius" Value="{StaticResource ControlRadius}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource ControlRadius}" />
         <Setter Property="MinHeight" Value="30" />
         <Setter Property="Padding" Value="8,4" />
     </Style>
     <Style Selector="ComboBox:focus /template/ Border#Background">
-        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
     </Style>
 
     <!-- ============ NumericUpDown ============ -->
     <Style Selector="NumericUpDown">
-        <Setter Property="Background" Value="{StaticResource ControlBgBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource ControlBgBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="BorderBrush" Value="Transparent" />
-        <Setter Property="CornerRadius" Value="{StaticResource ControlRadius}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource ControlRadius}" />
         <Setter Property="MinHeight" Value="30" />
     </Style>
     <Style Selector="NumericUpDown:focus-within">
-        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
     </Style>
 
     <!-- ============ ToggleSwitch ============ -->
     <!-- Booleans render as a switch (state), never a checkbox or a true/false dropdown. -->
     <Style Selector="ToggleSwitch">
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         <Setter Property="OnContent" Value="" />
         <Setter Property="OffContent" Value="" />
         <Setter Property="MinWidth" Value="0" />
@@ -229,16 +229,16 @@
     <!-- Shared chrome; only the accent differs between node and entity. -->
     <Style Selector="Border.card">
         <Setter Property="Width" Value="{x:Static vm:NodeLayout.Width}" />
-        <Setter Property="Background" Value="{StaticResource CardBgBrush}" />
-        <Setter Property="CornerRadius" Value="{StaticResource CardRadius}" />
+        <Setter Property="Background" Value="{DynamicResource CardBgBrush}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource CardRadius}" />
         <Setter Property="BorderThickness" Value="2" />
         <Setter Property="BorderBrush" Value="Transparent" />
     </Style>
     <Style Selector="Border.card.node.selected">
-        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
     </Style>
     <Style Selector="Border.card.entity.selected">
-        <Setter Property="BorderBrush" Value="{StaticResource EntityAccentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource EntityAccentBrush}" />
     </Style>
     <!-- Hidden (Visible = false) canvas items / rows are dimmed. -->
     <Style Selector="Border.card.hidden">
@@ -252,17 +252,17 @@
     <Style Selector="TextBlock.inspector-title">
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
         <Setter Property="Margin" Value="0,0,0,6" />
     </Style>
     <Style Selector="TextBlock.section">
         <Setter Property="FontSize" Value="11" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
         <Setter Property="Margin" Value="0,8,0,4" />
     </Style>
     <Style Selector="TextBlock.field-label">
         <Setter Property="FontSize" Value="11" />
-        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
     </Style>
 </Styles>
