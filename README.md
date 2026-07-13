@@ -180,7 +180,3 @@ dotnet publish Tshin/Tshin.csproj -c Release -r osx-arm64 --self-contained true 
 - **Dot-grid background**: A VisualBrush tiles a single cell containing a dot, with the phase adjusted to follow the pan offset, providing an effectively infinite grid.
 
 ---
-
-## License
-
-This project is a private work-in-progress. No license is specified.
